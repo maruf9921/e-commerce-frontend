@@ -1,7 +1,16 @@
 import CursorTrail from "@/components/CursorTrail/CursorTrail";
+import ProductCard from "@/components/ProductCard/ProductCard";
 import Image from "next/image";
 
 export default function Home() {
+
+  const products = [
+    { id: 1, name: "Wireless Headphones", price: 99, image: "/images/wireless_head_phone.jpg" },
+    { id: 2, name: "Smart Watch", price: 149, image: "/images/smart_watch.jpg" },
+    { id: 3, name: "Gaming Mouse", price: 59, image: "/images/Gaming-Mouse.jpg" },
+    { id: 4, name: "Mechanical Keyboard", price: 129, image: "/images/Mechanical-Keyboard.jpeg" },
+  ];
+
   return (
     <>
     <CursorTrail />
@@ -9,9 +18,11 @@ export default function Home() {
           <h1 className="text-6xl font-semibold animate-pulse">Welcome to Our E-Commerce Store</h1>
           <p>Discover a wide range of products at unbeatable prices.</p>
     </div>
-    <div className="flex justify-center items-center mb-10">
-
-    </div>
+    <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-16">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
 
     </>
   );
