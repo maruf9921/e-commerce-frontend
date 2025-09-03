@@ -18,7 +18,12 @@ export default function Home() {
           <h1 className="text-6xl font-semibold animate-pulse">Welcome to Our E-Commerce Store</h1>
           <p>Discover a wide range of products at unbeatable prices.</p>
     </div>
+    <div className="text-center mb-12">
+      <h2 className="text-4xl font-bold text-white mb-4">Featured Products</h2>
+      <p className="text-gray-400">Explore our top picks just for you</p>
+    </div>
     <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-16">
+      
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
