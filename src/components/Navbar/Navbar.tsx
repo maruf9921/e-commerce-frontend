@@ -25,6 +25,11 @@ const Navbar: React.FC = () => {
         >
           Contact
         </a>
+        <Link href="/seller">
+          <span className="text-white text-lg font-medium hover:border-b-2 hover:border-purple-500 hover:text-neutral-300 cursor-pointer">
+            Seller Dashboard
+          </span>
+        </Link>
 
         <Link href="/login">
             <button className="bg-purple-500 text-white text-lg font-medium px-6 py-2 rounded-md hover:bg-purple-600 transition duration-200">

@@ -1,6 +1,5 @@
 import CursorTrail from "@/components/CursorTrail/CursorTrail";
 import ProductCard from "@/components/ProductCard/ProductCard";
-import Image from "next/image";
 
 export default function Home() {
 

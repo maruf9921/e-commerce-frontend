@@ -2,12 +2,11 @@ import React from "react";
 import Image from "next/image";
 
 interface ProductPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function ProductPage({ params }: ProductPageProps) {
-  const { id } = params;
-
+export default async function ProductPage({ params }: ProductPageProps) {
+  const { id } = await params;
   // Example: Products array (simulate database)
   const products = [
     { id: 1, name: "Wireless Headphones", price: 99, image: "/images/wireless_head_phone.jpg", description: "High-quality wireless headphones" },
