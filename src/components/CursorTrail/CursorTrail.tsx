@@ -15,7 +15,9 @@ export default function CursorTrail() {
         "w-2 h-2 bg-purple-500 rounded-full absolute pointer-events-none transition-opacity duration-500";
       dot.style.left = `${x - 4}px`;
       dot.style.top = `${y - 4}px`;
-      container.appendChild(dot);
+      if (container) {
+        container.appendChild(dot);
+      }
 
       // Fade out and remove after delay
       requestAnimationFrame(() => {
@@ -23,7 +25,9 @@ export default function CursorTrail() {
       });
 
       setTimeout(() => {
-        container.removeChild(dot);
+        if (container && container.contains(dot)) {
+          container.removeChild(dot);
+        }
       }, 500);
     }
 
