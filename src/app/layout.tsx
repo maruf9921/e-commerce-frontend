@@ -6,6 +6,7 @@ import Footer from "@/components/Footer/Footer";
 import CursorTrail from "@/components/CursorTrail/CursorTrail";
 import { AuthProvider } from "@/contexts/AuthContextNew";
 import { ToastProvider } from "@/contexts/ToastContext";
+import NotificationWrapper from "@/components/NotificationWrapper";
 import ClientWrapper from "@/components/ClientWrapper";
 
 const geistSans = Geist({
@@ -47,13 +48,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       suppressHydrationWarning={true}>
         <AuthProvider>
-          <ToastProvider>
-            <ClientWrapper>
-              <Navigation />
-              {children}
-              <Footer />
-            </ClientWrapper>
-          </ToastProvider>
+          <NotificationWrapper>
+            <ToastProvider>
+              <ClientWrapper>
+                <Navigation />
+                {children}
+                <Footer />
+              </ClientWrapper>
+            </ToastProvider>
+          </NotificationWrapper>
         </AuthProvider>
       </body>
     </html>

@@ -219,7 +219,7 @@ export default function OrderConfirmationPage() {
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                       {item.product.images && item.product.images.length > 0 ? (
                         <img
-                          src={`http://localhost:4002/products/serve-image/${item.product.images[0]}`}
+                          src={`http://localhost:4002/uploads/images/${item.product.images[0]}`}
                           alt={item.product.name}
                           className="w-full h-full object-cover rounded-lg"
                         />

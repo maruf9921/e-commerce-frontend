@@ -2,57 +2,100 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSellerGuard } from '@/hooks/useAuthGuard';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { sellerDashboardAPI } from '@/utils/api';
+import { 
+  Package, 
+  Eye, 
+  Calendar, 
+  DollarSign, 
+  Truck, 
+  ArrowLeft, 
+  Bell,
+  ShoppingCart,
+  User,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Loader2,
+  RefreshCw
+} from 'lucide-react';
 
 interface OrderItem {
   id: number;
   productNameSnapshot: string;
+  productDescriptionSnapshot: string;
+  unitPriceSnapshot: string;
   quantity: number;
-  unitPriceSnapshot: number;
-  subtotal: number;
-  productId: number;
+  subtotal: string;
+  product: {
+    id: number;
+    name: string;
+    price: string;
+  };
 }
 
 interface Order {
   id: number;
-  status: string;
-  totalAmount: number;
-  shippingCost: number;
-  taxAmount: number;
-  placedAt: string;
+  userId: number;
+  status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  totalAmount: string;
+  shippingCost: string;
+  taxAmount: string;
   shippingAddress: {
     fullName: string;
-    phone: string;
     line1: string;
     line2?: string;
     city: string;
     state: string;
     postalCode: string;
+    phone: string;
     country: string;
   };
+  placedAt: string;
+  updatedAt: string;
   orderItems: OrderItem[];
-  payment?: {
+  buyer: {
+    id: number;
+    username: string;
+    email: string;
+    fullName: string;
+  };
+  payment: {
     status: string;
     provider: string;
-    amount: number;
+    amount: string;
+  };
+}
+
+interface OrdersResponse {
+  orders: Order[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   };
 }
 
 export default function SellerOrders() {
   const { user, loading, isAuthorized } = useSellerGuard();
   const router = useRouter();
+  const { notifications, unreadCount, markAsRead, clearAllNotifications } = useNotifications();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const statusColors = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    confirmed: 'bg-blue-100 text-blue-800',
-    shipped: 'bg-purple-100 text-purple-800',
-    delivered: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800'
+    PENDING: 'bg-yellow-100 text-yellow-800',
+    CONFIRMED: 'bg-blue-100 text-blue-800',
+    SHIPPED: 'bg-purple-100 text-purple-800',
+    DELIVERED: 'bg-green-100 text-green-800',
+    CANCELLED: 'bg-red-100 text-red-800'
   };
 
   useEffect(() => {
@@ -60,6 +103,23 @@ export default function SellerOrders() {
       fetchOrders();
     }
   }, [user, isAuthorized, currentPage, statusFilter]);
+
+  // Listen for new order notifications and refresh orders
+  useEffect(() => {
+    const handleNewOrder = () => {
+      fetchOrders(); // Refresh orders when new notification arrives
+    };
+
+    // The Pusher connection is handled by NotificationContext
+    // We just need to refresh orders when notifications change
+    if (notifications.length > 0) {
+      const latestNotification = notifications[0];
+      if (latestNotification.type === 'order' && !latestNotification.read) {
+        // A new order notification was received, refresh orders
+        fetchOrders();
+      }
+    }
+  }, [notifications]);
 
   const fetchOrders = async () => {
     setLoadingOrders(true);
@@ -75,7 +135,7 @@ export default function SellerOrders() {
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/seller/orders?${params}`, {
         method: 'GET',
-        credentials: 'include', // Use cookie-based authentication
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         }
@@ -102,12 +162,12 @@ export default function SellerOrders() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/${orderId}/status`, {
         method: 'PATCH',
-        credentials: 'include', // Use cookie-based authentication
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          status: newStatus,
+          status: newStatus.toUpperCase(),
           trackingNumber: trackingNumber || undefined
         })
       });
@@ -129,7 +189,7 @@ export default function SellerOrders() {
   const handleStatusUpdate = (orderId: number, newStatus: string) => {
     let trackingNumber: string | undefined;
     
-    if (newStatus === 'shipped') {
+    if (newStatus === 'SHIPPED') {
       trackingNumber = prompt('Enter tracking number (optional):') || undefined;
     }
     
@@ -165,12 +225,83 @@ export default function SellerOrders() {
               <h1 className="text-2xl font-bold text-white">My Orders</h1>
               <p className="text-gray-400">Manage your orders and fulfillment</p>
             </div>
-            <button
-              onClick={() => router.push('/seller/dashboard')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-            >
-              Back to Dashboard
-            </button>
+            <div className="flex items-center space-x-4">
+              {/* Notification Bell */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <Bell className="w-6 h-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-gray-800 rounded-md shadow-lg border border-gray-700 z-50">
+                    <div className="p-4 border-b border-gray-700">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-white font-semibold">Notifications</h3>
+                        {notifications.length > 0 && (
+                          <button
+                            onClick={clearAllNotifications}
+                            className="text-sm text-blue-400 hover:text-blue-300"
+                          >
+                            Clear All
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-gray-400 text-center">
+                          No notifications
+                        </div>
+                      ) : (
+                        notifications.slice(0, 10).map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-3 border-b border-gray-700 hover:bg-gray-700 cursor-pointer ${
+                              !notification.read ? 'bg-gray-750' : ''
+                            }`}
+                            onClick={() => markAsRead(notification.id)}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <ShoppingCart className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm ${!notification.read ? 'text-white font-medium' : 'text-gray-300'}`}>
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(notification.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                              {!notification.read && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <button
+                onClick={() => router.push('/seller/dashboard')}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Back to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -190,11 +321,11 @@ export default function SellerOrders() {
                 className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2"
               >
                 <option value="all">All Orders</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="shipped">Shipped</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="PENDING">Pending</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="SHIPPED">Shipped</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
             <div className="flex-1"></div>
@@ -243,7 +374,7 @@ export default function SellerOrders() {
                         {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
                       <p className="text-lg font-bold text-white mt-1">
-                        ${order.totalAmount.toFixed(2)}
+                        ${parseFloat(order.totalAmount).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -260,7 +391,7 @@ export default function SellerOrders() {
                           <span className="text-gray-500 ml-2">x{item.quantity}</span>
                         </div>
                         <div className="text-white">
-                          ${item.subtotal.toFixed(2)}
+                          ${parseFloat(item.subtotal).toFixed(2)}
                         </div>
                       </div>
                     ))}
@@ -283,38 +414,38 @@ export default function SellerOrders() {
                 </div>
 
                 {/* Actions */}
-                {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
                   <div className="px-6 py-4 border-t border-gray-700 bg-gray-750">
                     <div className="flex flex-wrap gap-2">
-                      {order.status === 'pending' && (
+                      {order.status === 'PENDING' && (
                         <button
-                          onClick={() => handleStatusUpdate(order.id, 'confirmed')}
+                          onClick={() => handleStatusUpdate(order.id, 'CONFIRMED')}
                           className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
                         >
                           Confirm Order
                         </button>
                       )}
-                      {order.status === 'confirmed' && (
+                      {order.status === 'CONFIRMED' && (
                         <button
-                          onClick={() => handleStatusUpdate(order.id, 'shipped')}
+                          onClick={() => handleStatusUpdate(order.id, 'SHIPPED')}
                           className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors"
                         >
                           Mark as Shipped
                         </button>
                       )}
-                      {order.status === 'shipped' && (
+                      {order.status === 'SHIPPED' && (
                         <button
-                          onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                          onClick={() => handleStatusUpdate(order.id, 'DELIVERED')}
                           className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
                         >
                           Mark as Delivered
                         </button>
                       )}
-                      {['pending', 'confirmed'].includes(order.status) && (
+                      {['PENDING', 'CONFIRMED'].includes(order.status) && (
                         <button
                           onClick={() => {
                             if (confirm('Are you sure you want to cancel this order?')) {
-                              handleStatusUpdate(order.id, 'cancelled');
+                              handleStatusUpdate(order.id, 'CANCELLED');
                             }
                           }}
                           className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
