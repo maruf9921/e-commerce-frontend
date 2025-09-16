@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, ShoppingCart, Heart, User, Package, Home, LogOut, ChevronDown, Search } from 'lucide-react';
 import { cartAPI } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContextNew';
 
 interface User {
   id: number;
@@ -15,16 +16,11 @@ interface User {
 export default function Navigation() {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading, logout } = useAuth(); // Use centralized auth state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState<number>(0);
-
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
 
   useEffect(() => {
     fetchCartCount();
@@ -34,27 +30,6 @@ export default function Navigation() {
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
   }, [pathname]);
-
-  const checkAuthStatus = async () => {
-    try {
-      const response = await fetch('http://localhost:4002/auth/profile', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchCartCount = async () => {
     if (user) {
@@ -79,12 +54,7 @@ export default function Navigation() {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:4002/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      setUser(null);
-      router.push('/');
+      await logout(); // Use the centralized logout from AuthContext
     } catch (error) {
       console.error('Logout failed:', error);
     }

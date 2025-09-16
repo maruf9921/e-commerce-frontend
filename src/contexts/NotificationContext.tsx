@@ -198,6 +198,45 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       });
     }
 
+    // Generic notification listeners for backend events
+    userChannel.bind_global((eventName: string, data: any) => {
+      console.log(`📨 Received notification on user channel: ${eventName}`, data);
+      if (eventName.startsWith('notification-')) {
+        handleNotification(eventName, {
+          ...data,
+          type: data.type || 'system',
+          title: data.title || 'New Notification',
+          message: data.message || 'You have a new notification',
+        });
+      }
+    });
+
+    if (roleChannel) {
+      roleChannel.bind_global((eventName: string, data: any) => {
+        console.log(`📨 Received notification on role channel: ${eventName}`, data);
+        if (eventName.startsWith('notification-')) {
+          handleNotification(eventName, {
+            ...data,
+            type: data.type || 'system',
+            title: data.title || 'New Notification',
+            message: data.message || 'You have a new notification',
+          });
+        }
+      });
+    }
+
+    broadcastChannel.bind_global((eventName: string, data: any) => {
+      console.log(`📨 Received notification on broadcast channel: ${eventName}`, data);
+      if (eventName.startsWith('notification-') || eventName.startsWith('broadcast-')) {
+        handleNotification(eventName, {
+          ...data,
+          type: data.type || 'system',
+          title: data.title || 'New Notification',
+          message: data.message || 'You have a new notification',
+        });
+      }
+    });
+
     // Broadcast events (system-wide)
     broadcastChannel.bind('system-maintenance', (data: any) => {
       handleNotification('system-maintenance', {
