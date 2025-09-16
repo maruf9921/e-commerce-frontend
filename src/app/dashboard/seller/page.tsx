@@ -3,6 +3,8 @@ import React from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import LogoutButton from '@/components/LogoutButton';
 
+
+
 export default function SellerDashboardPage() {
   const { user, loading } = useAdminAuth();
 
@@ -77,7 +79,7 @@ export default function SellerDashboardPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Orders</dt>
-                    <dd className="text-lg font-medium text-gray-900">0</dd>
+                    <dd className="text-lg font-medium text-gray-900"></dd>
                   </dl>
                 </div>
               </div>

@@ -14,6 +14,18 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '4002',
+        pathname: '/products/serve-image/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '4002',
+        pathname: '/image-upload/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '4002',
         pathname: '/images/**',
       },
     ],

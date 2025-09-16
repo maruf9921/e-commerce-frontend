@@ -20,10 +20,8 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config: any) => {
-        if (config.headers && typeof window !== 'undefined') {
-          // Add origin header for CORS
-          config.headers['Origin'] = window.location.origin;
-        }
+        // Note: Origin header is automatically set by the browser for CORS requests
+        // Do not manually set it as it causes "unsafe header" warnings
         
         if (process.env.NEXT_PUBLIC_ENVIRONMENT === 'development') {
           console.log('API Request:', config);
@@ -154,7 +152,7 @@ export class ProductAPI {
   constructor(private client: ApiClient) {}
 
   async getAllProducts() {
-    return this.client.get('/products');
+    return this.client.get('/products/with-images');
   }
 
   async getProductById(id: string) {

@@ -126,7 +126,19 @@ export const cartAPI = {
 // Order API functions
 export const orderAPI = {
   // Create order from cart
-  createOrderFromCart: () => api.post('/orders/from-cart'),
+  createOrderFromCart: (orderData: {
+    shippingAddress: {
+      fullName: string;
+      phone: string;
+      line1: string;
+      line2?: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+    };
+    notes?: string;
+  }) => api.post('/orders/from-cart', orderData),
   
   // Get user's orders
   getUserOrders: (page: number = 1, limit: number = 10) => 

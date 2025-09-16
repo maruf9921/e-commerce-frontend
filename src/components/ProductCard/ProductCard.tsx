@@ -6,7 +6,13 @@ type Product = {
   id: number;
   name: string;
   price: number;
-  image: string;
+  images: Array<{
+    id: number;
+    imageUrl: string;
+    altText: string;
+    isActive: boolean;
+    sortOrder: number;
+  }>;
 };
 
 interface ProductCardProps {
@@ -14,12 +20,16 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  // Get the first active image or fallback
+  const primaryImage = product.images?.find(img => img.isActive) || product.images?.[0];
+  const imageUrl = primaryImage?.imageUrl || '/images/placeholder.jpg';
+  
   return (
     <div className="bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition p-4 flex flex-col items-center">
       <Link href={`/products/${product.id}`}>
         <Image
-          src={product.image}
-          alt={product.name}
+          src={imageUrl}
+          alt={primaryImage?.altText || product.name}
           width={200}
           height={200}
           className="rounded-lg object-cover cursor-pointer"

@@ -6,7 +6,7 @@ import { CheckCircle, Package, Truck, CreditCard, MapPin, Calendar, ArrowLeft, D
 interface Order {
   id: number;
   status: string;
-  totalAmount: number;
+  totalAmount: string | number; // API might return as string
   shippingAddress: {
     street: string;
     city: string;
@@ -17,18 +17,21 @@ interface Order {
   trackingNumber?: string;
   createdAt: string;
   updatedAt: string;
-  items: Array<{
+  orderItems: Array<{
     id: number;
     quantity: number;
-    unitPriceSnapshot: number;
+    unitPriceSnapshot: string | number; // API might return as string
     product: {
       id: number;
       name: string;
       images: string[];
-      seller: {
-        businessName: string;
-        username: string;
-      };
+    };
+    seller: {
+      id: number;
+      sellerId?: string;
+      username: string;
+      fullName?: string;
+      role: string;
     };
   }>;
 }
@@ -109,7 +112,7 @@ export default function OrderConfirmationPage() {
     const invoiceData = {
       orderId: order?.id,
       date: new Date(order?.createdAt || '').toLocaleDateString(),
-      items: order?.items,
+      items: order?.orderItems,
       total: order?.totalAmount,
       shippingAddress: order?.shippingAddress
     };
@@ -210,7 +213,7 @@ export default function OrderConfirmationPage() {
               </div>
               
               <div className="divide-y divide-gray-200">
-                {order.items.map((item) => (
+                {order.orderItems && order.orderItems.map((item) => (
                   <div key={item.id} className="p-6 flex items-center gap-4">
                     {/* Product Image */}
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -228,17 +231,19 @@ export default function OrderConfirmationPage() {
                     {/* Product Info */}
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">{item.product.name}</h4>
-                      <p className="text-sm text-gray-600">by {item.product.seller.businessName}</p>
+                      <p className="text-sm text-gray-600">
+                        by {item.seller?.fullName || item.seller?.sellerId || item.seller?.username || 'Unknown Seller'}
+                      </p>
                       <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                     </div>
 
                     {/* Price */}
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        ${(item.unitPriceSnapshot * item.quantity).toFixed(2)}
+                        ${(Number(item.unitPriceSnapshot) * item.quantity).toFixed(2)}
                       </p>
                       <p className="text-sm text-gray-600">
-                        ${item.unitPriceSnapshot} each
+                        ${Number(item.unitPriceSnapshot).toFixed(2)} each
                       </p>
                     </div>
                   </div>
@@ -270,20 +275,20 @@ export default function OrderConfirmationPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${(order.totalAmount - 9.99).toFixed(2)}</span>
+                  <span className="font-medium">${(Number(order.totalAmount) - 9.99).toFixed(2)}</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">
-                    {order.totalAmount >= 100 ? 'Free' : '$9.99'}
+                    {Number(order.totalAmount) >= 100 ? 'Free' : '$9.99'}
                   </span>
                 </div>
                 
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
-                    <span>${order.totalAmount.toFixed(2)}</span>
+                    <span>${Number(order.totalAmount).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

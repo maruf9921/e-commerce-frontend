@@ -2,16 +2,36 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, CreditCard } from 'lucide-react';
+import { cartAPI } from '@/config/api';
+import { orderAPI } from '@/utils/api';
 
 interface CartItem {
+  id: number;
   productId: number;
   quantity: number;
-  price: number;
-  name: string;
-  image?: string;
-  stock?: number;
-  sellerId?: number;
-  sellerName?: string;
+  price: string; // Backend returns price as string
+  isActive: boolean;
+  product: {
+    id: number;
+    name: string; // Product entity uses 'name' not 'title'
+    description: string;
+    price: string;
+    category: string;
+    isActive: boolean;
+    stockQuantity: number; // Product entity uses 'stockQuantity' not 'stock'
+    images?: Array<{
+      id: number;
+      imageUrl: string;
+      altText?: string;
+      isActive: boolean;
+      sortOrder: number;
+    }>;
+    seller?: {
+      id: number;
+      username: string;
+      phone?: string;
+    };
+  };
 }
 
 interface OrderData {
@@ -37,6 +57,8 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
+    fullName: '',
+    phone: '',
     street: '',
     city: '',
     state: '',
@@ -45,43 +67,67 @@ export default function CartPage() {
   });
 
   useEffect(() => {
-    loadCartFromStorage();
+    loadCartFromDatabase();
   }, []);
 
-  const loadCartFromStorage = () => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
+  const loadCartFromDatabase = async () => {
+    try {
+      setLoading(true);
+      const response = await cartAPI.getCartItems();
+      setCart(response.data || []);
+    } catch (error) {
+      console.error('Failed to load cart:', error);
+      setError('Failed to load cart items');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const saveCartToStorage = (newCart: CartItem[]) => {
-    localStorage.setItem('cart', JSON.stringify(newCart));
-    setCart(newCart);
-  };
-
-  const updateQuantity = (productId: number, newQuantity: number) => {
+  const updateQuantity = async (cartId: number, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId);
+      await removeFromCart(cartId);
       return;
     }
 
-    const newCart = cart.map(item =>
-      item.productId === productId
-        ? { ...item, quantity: newQuantity }
-        : item
-    );
-    saveCartToStorage(newCart);
+    try {
+      await cartAPI.updateCartItem(cartId, newQuantity);
+      await loadCartFromDatabase(); // Reload cart
+      // Refresh cart count in navigation
+      if (typeof window !== 'undefined' && (window as any).refreshCartCount) {
+        (window as any).refreshCartCount();
+      }
+    } catch (error) {
+      console.error('Failed to update cart item:', error);
+      setError('Failed to update cart item');
+    }
   };
 
-  const removeFromCart = (productId: number) => {
-    const newCart = cart.filter(item => item.productId !== productId);
-    saveCartToStorage(newCart);
+  const removeFromCart = async (cartId: number) => {
+    try {
+      await cartAPI.removeFromCart(cartId);
+      await loadCartFromDatabase(); // Reload cart
+      // Refresh cart count in navigation
+      if (typeof window !== 'undefined' && (window as any).refreshCartCount) {
+        (window as any).refreshCartCount();
+      }
+    } catch (error) {
+      console.error('Failed to remove item from cart:', error);
+      setError('Failed to remove item from cart');
+    }
   };
 
-  const clearCart = () => {
-    setCart([]);
-    localStorage.removeItem('cart');
+  const clearCart = async () => {
+    try {
+      await cartAPI.clearCart();
+      setCart([]);
+      // Refresh cart count in navigation
+      if (typeof window !== 'undefined' && (window as any).refreshCartCount) {
+        (window as any).refreshCartCount();
+      }
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+      setError('Failed to clear cart');
+    }
   };
 
   const getTotalItems = () => {
@@ -89,7 +135,7 @@ export default function CartPage() {
   };
 
   const getTotalPrice = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cart.reduce((total, item) => total + (parseFloat(item.price) * item.quantity), 0);
   };
 
   const getShippingCost = () => {
@@ -104,7 +150,7 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
-    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zipCode) {
+    if (!shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.street || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zipCode) {
       setError('Please fill in all shipping address fields');
       return;
     }
@@ -113,39 +159,37 @@ export default function CartPage() {
     setError(null);
 
     try {
-      const orderData: OrderData = {
-        items: cart.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.price
-        })),
-        shippingAddress,
-        totalAmount: getFinalTotal()
+      // Use the createOrderFromCart API with shipping address
+      const orderData = {
+        shippingAddress: {
+          fullName: shippingAddress.fullName,
+          phone: shippingAddress.phone,
+          line1: shippingAddress.street,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          postalCode: shippingAddress.zipCode,
+          country: shippingAddress.country
+        }
       };
 
-      const response = await fetch('http://localhost:4002/orders', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to place order');
-      }
-
-      const order = await response.json();
+      const response = await orderAPI.createOrderFromCart(orderData);
+      const order = response.data as { id: number };
       
-      // Clear cart after successful order
-      clearCart();
+      // Refresh cart count in navigation
+      if (typeof window !== 'undefined' && (window as any).refreshCartCount) {
+        (window as any).refreshCartCount();
+      }
       
       // Redirect to order confirmation
       router.push(`/orders/${order.id}/confirmation`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to place order');
+    } catch (err: any) {
+      console.error('Order creation failed:', err);
+      if (err.response?.status === 401) {
+        setError('Please log in to place an order');
+        router.push('/login');
+      } else {
+        setError(err.response?.data?.message || 'Failed to place order');
+      }
     } finally {
       setLoading(false);
     }
@@ -203,13 +247,13 @@ export default function CartPage() {
               
               <div className="divide-y divide-gray-200">
                 {cart.map((item) => (
-                  <div key={item.productId} className="p-6 flex items-center gap-4">
+                  <div key={item.id} className="p-6 flex items-center gap-4">
                     {/* Product Image */}
                     <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {item.image ? (
+                      {item.product.images && item.product.images.length > 0 ? (
                         <img
-                          src={`http://localhost:4002/products/serve-image/${item.image}`}
-                          alt={item.name}
+                          src={`http://localhost:4002/products/serve-image/${item.product.images[0].imageUrl.split('/').pop()}`}
+                          alt={item.product.images[0].altText || item.product.name}
                           className="w-full h-full object-cover rounded-lg"
                         />
                       ) : (
@@ -219,17 +263,17 @@ export default function CartPage() {
 
                     {/* Product Info */}
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{item.name}</h3>
-                      {item.sellerName && (
-                        <p className="text-sm text-gray-600">by {item.sellerName}</p>
+                      <h3 className="font-medium text-gray-900">{item.product.name}</h3>
+                      {item.product.seller && (
+                        <p className="text-sm text-gray-600">by {item.product.seller.username}</p>
                       )}
-                      <p className="text-lg font-semibold text-blue-600">${item.price}</p>
+                      <p className="text-lg font-semibold text-blue-600">${parseFloat(item.price).toFixed(2)}</p>
                     </div>
 
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                         disabled={loading}
                       >
@@ -239,9 +283,9 @@ export default function CartPage() {
                       <span className="w-12 text-center font-medium">{item.quantity}</span>
                       
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                        disabled={loading || (item.stock !== undefined && item.quantity >= item.stock)}
+                        disabled={loading || item.quantity >= item.product.stockQuantity}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -250,16 +294,16 @@ export default function CartPage() {
                     {/* Item Total */}
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ${(parseFloat(item.price) * item.quantity).toFixed(2)}
                       </p>
-                      {item.stock !== undefined && item.quantity >= item.stock && (
+                      {item.quantity >= item.product.stockQuantity && (
                         <p className="text-xs text-red-600">Max stock reached</p>
                       )}
                     </div>
 
                     {/* Remove Button */}
                     <button
-                      onClick={() => removeFromCart(item.productId)}
+                      onClick={() => removeFromCart(item.id)}
                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                       disabled={loading}
                     >
@@ -326,6 +370,24 @@ export default function CartPage() {
                   <h3 className="font-medium text-gray-900">Shipping Address</h3>
                   
                   <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Full Name"
+                      value={shippingAddress.fullName}
+                      onChange={(e) => setShippingAddress({...shippingAddress, fullName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                    
+                    <input
+                      type="tel"
+                      placeholder="Phone Number"
+                      value={shippingAddress.phone}
+                      onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                    
                     <input
                       type="text"
                       placeholder="Street Address"

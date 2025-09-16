@@ -7,10 +7,40 @@ import { sellerDashboardAPI } from '@/utils/api';
 import { Package, DollarSign, ShoppingCart, Users } from 'lucide-react';
 
 interface DashboardStats {
-  totalProducts: number;
-  totalSales: number;
-  pendingOrders: number;
-  totalCustomers: number;
+  seller: {
+    id: number;
+    username: string;
+    fullName: string;
+    phone: string;
+    isActive: boolean;
+    joinedAt: string;
+  };
+  analytics: {
+    products: {
+      totalProducts: number;
+      activeProducts: number;
+      inactiveProducts: number;
+      totalStock: number;
+    };
+    orders: {
+      totalOrders: number;
+      pendingOrders: number;
+      confirmedOrders: number;
+      shippedOrders: number;
+      deliveredOrders: number;
+      cancelledOrders: number;
+      totalRevenue: number;
+      averageOrderValue: number;
+    };
+    financial: {
+      totalEarnings: number;
+      pendingPayouts: number;
+      completedPayouts: number;
+      platformFees: number;
+      monthlyEarnings: number;
+    };
+  };
+  recentOrders: any[];
 }
 
 export default function SellerDashboard() {
@@ -149,7 +179,7 @@ export default function SellerDashboard() {
               <div>
                 <p className="text-gray-400 text-sm">Total Products</p>
                 <p className="text-2xl font-bold text-white">
-                  {statsLoading ? '...' : dashboardStats?.totalProducts || 0}
+                  {statsLoading ? '...' : dashboardStats?.analytics?.products?.totalProducts || 0}
                 </p>
               </div>
               <Package className="w-8 h-8 text-blue-500" />
@@ -158,9 +188,9 @@ export default function SellerDashboard() {
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Sales</p>
+                <p className="text-gray-400 text-sm">Total Revenue</p>
                 <p className="text-2xl font-bold text-white">
-                  ${statsLoading ? '...' : (dashboardStats?.totalSales || 0).toFixed(2)}
+                  ${statsLoading ? '...' : (dashboardStats?.analytics?.orders?.totalRevenue || 0).toFixed(2)}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-green-500" />
@@ -171,7 +201,7 @@ export default function SellerDashboard() {
               <div>
                 <p className="text-gray-400 text-sm">Pending Orders</p>
                 <p className="text-2xl font-bold text-white">
-                  {statsLoading ? '...' : dashboardStats?.pendingOrders || 0}
+                  {statsLoading ? '...' : dashboardStats?.analytics?.orders?.pendingOrders || 0}
                 </p>
               </div>
               <ShoppingCart className="w-8 h-8 text-yellow-500" />
@@ -180,9 +210,9 @@ export default function SellerDashboard() {
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Total Customers</p>
+                <p className="text-gray-400 text-sm">Total Orders</p>
                 <p className="text-2xl font-bold text-white">
-                  {statsLoading ? '...' : dashboardStats?.totalCustomers || 0}
+                  {statsLoading ? '...' : dashboardStats?.analytics?.orders?.totalOrders || 0}
                 </p>
               </div>
               <Users className="w-8 h-8 text-purple-500" />
@@ -308,20 +338,28 @@ export default function SellerDashboard() {
           {user.isVerified ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-400">0</div>
+                <div className="text-3xl font-bold text-blue-400">
+                  {statsLoading ? '...' : dashboardStats?.analytics?.products?.totalProducts || 0}
+                </div>
                 <div className="text-gray-400">Products Listed</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-400">0</div>
+                <div className="text-3xl font-bold text-green-400">
+                  {statsLoading ? '...' : dashboardStats?.analytics?.orders?.totalOrders || 0}
+                </div>
                 <div className="text-gray-400">Orders Received</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-400">$0</div>
+                <div className="text-3xl font-bold text-purple-400">
+                  ${statsLoading ? '...' : (dashboardStats?.analytics?.orders?.totalRevenue || 0).toFixed(2)}
+                </div>
                 <div className="text-gray-400">Total Revenue</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-400">0</div>
-                <div className="text-gray-400">Product Views</div>
+                <div className="text-3xl font-bold text-orange-400">
+                  {statsLoading ? '...' : dashboardStats?.recentOrders?.length || 0}
+                </div>
+                <div className="text-gray-400">Recent Orders</div>
               </div>
             </div>
           ) : (

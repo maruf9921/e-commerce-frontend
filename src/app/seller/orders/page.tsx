@@ -64,7 +64,6 @@ export default function SellerOrders() {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10'
@@ -74,15 +73,19 @@ export default function SellerOrders() {
         params.append('status', statusFilter);
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders?${params}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/seller/orders?${params}`, {
+        method: 'GET',
+        credentials: 'include', // Use cookie-based authentication
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch orders');
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please login again.');
+        }
+        throw new Error('Failed to fetch seller orders');
       }
 
       const data = await response.json();
@@ -97,11 +100,10 @@ export default function SellerOrders() {
 
   const updateOrderStatus = async (orderId: number, newStatus: string, trackingNumber?: string) => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/${orderId}/status`, {
         method: 'PATCH',
+        credentials: 'include', // Use cookie-based authentication
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
@@ -111,6 +113,9 @@ export default function SellerOrders() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please login again.');
+        }
         throw new Error('Failed to update order status');
       }
 
