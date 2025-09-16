@@ -1,123 +1,151 @@
 'use client';
-import React, { useState } from 'react';
-import { adminAPI } from '@/lib/adminAPI';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/contexts/ToastContext';
+import { adminAPI } from '@/lib/adminAPI';
 
 interface EmailTemplate {
   id: string;
   name: string;
   subject: string;
-  content: string;
+  body: string;
+}
+
+interface EmailHistory {
+  id: number;
+  subject: string;
+  recipients: string[];
+  sentAt: string;
+  status: 'sent' | 'failed';
 }
 
 export default function EmailPage() {
-  const [activeTab, setActiveTab] = useState<'compose' | 'templates'>('compose');
+  const [activeTab, setActiveTab] = useState<'compose' | 'templates' | 'history'>('compose');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [recipients, setRecipients] = useState('');
+  const [recipientType, setRecipientType] = useState<'all' | 'users' | 'sellers' | 'custom'>('all');
   const [loading, setLoading] = useState(false);
-  const { addToast } = useToast();
-
-  // Email composition state
-  const [emailData, setEmailData] = useState({
-    recipients: [] as string[],
-    recipientType: 'custom' as 'custom' | 'all_users' | 'all_sellers',
-    subject: '',
-    message: '',
-    isHtml: false
-  });
-
-  // Template state
+  const [emailHistory, setEmailHistory] = useState<EmailHistory[]>([]);
   const [templates] = useState<EmailTemplate[]>([
     {
       id: '1',
       name: 'Welcome Email',
-      subject: 'Welcome to Our E-commerce Platform!',
-      content: 'Dear {{username}},\n\nWelcome to our platform! We are excited to have you on board.\n\nBest regards,\nThe Team'
+      subject: 'Welcome to Our Platform!',
+      body: 'Dear {{name}},\n\nWelcome to our e-commerce platform! We\'re excited to have you join our community.\n\nBest regards,\nThe Team'
     },
     {
       id: '2',
       name: 'Order Confirmation',
-      subject: 'Order Confirmation - Order #{{orderNumber}}',
-      content: 'Dear {{username}},\n\nYour order #{{orderNumber}} has been confirmed and is being processed.\n\nTotal Amount: ${{totalAmount}}\n\nThank you for your purchase!\n\nBest regards,\nThe Team'
+      subject: 'Order Confirmation - #{{orderNumber}}',
+      body: 'Dear {{name}},\n\nThank you for your order! Your order #{{orderNumber}} has been confirmed and is being processed.\n\nBest regards,\nThe Team'
     },
     {
       id: '3',
       name: 'Seller Verification',
       subject: 'Seller Account Verified',
-      content: 'Dear {{username}},\n\nCongratulations! Your seller account has been verified and approved.\n\nYou can now start listing your products on our platform.\n\nBest regards,\nThe Team'
+      body: 'Dear {{name}},\n\nCongratulations! Your seller account has been verified. You can now start listing your products.\n\nBest regards,\nThe Team'
     }
   ]);
+  
+  const { addToast } = useToast();
 
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-
-  const handleRecipientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const recipients = e.target.value.split(',').map(email => email.trim()).filter(email => email);
-    setEmailData({ ...emailData, recipients });
+  // Fetch email history
+  const fetchEmailHistory = async () => {
+    try {
+      // TODO: Call GET /api/admin/emails/history from NestJS backend
+      // For now, using dummy data
+      const dummyHistory: EmailHistory[] = [
+        {
+          id: 1,
+          subject: 'Welcome to Our Platform!',
+          recipients: ['user1@example.com', 'user2@example.com'],
+          sentAt: '2024-01-20T10:30:00Z',
+          status: 'sent'
+        },
+        {
+          id: 2,
+          subject: 'System Maintenance Notice',
+          recipients: ['all_users'],
+          sentAt: '2024-01-19T15:45:00Z',
+          status: 'sent'
+        }
+      ];
+      
+      setEmailHistory(dummyHistory);
+    } catch (error) {
+      console.error('Failed to fetch email history:', error);
+      addToast('Failed to load email history', 'error');
+    }
   };
 
-  const handleTemplateSelect = (template: EmailTemplate) => {
-    setEmailData({
-      ...emailData,
-      subject: template.subject,
-      message: template.content
-    });
-    setSelectedTemplate(template);
-    setActiveTab('compose');
-  };
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchEmailHistory();
+    }
+  }, [activeTab]);
 
-  const sendEmail = async () => {
-    if (!emailData.subject.trim() || !emailData.message.trim()) {
-      addToast('Please fill in subject and message', 'error');
+  // Handle email sending
+  const handleSendEmail = async () => {
+    if (!subject.trim() || !message.trim()) {
+      addToast('Please fill in both subject and message', 'error');
       return;
     }
 
-    let recipients = emailData.recipients;
-    
-    if (emailData.recipientType === 'all_users') {
-      recipients = ['all_users'];
-    } else if (emailData.recipientType === 'all_sellers') {
-      recipients = ['all_sellers'];
-    } else if (recipients.length === 0) {
+    if (recipientType === 'custom' && !recipients.trim()) {
       addToast('Please specify recipients', 'error');
       return;
     }
 
-    setLoading(true);
     try {
-      await adminAPI.sendEmail({
-        subject: emailData.subject,
-        message: emailData.message,
-        recipients
-      });
+      setLoading(true);
       
+      let recipientsList: string[] = [];
+      
+      if (recipientType === 'custom') {
+        recipientsList = recipients.split(',').map(email => email.trim()).filter(email => email);
+      } else {
+        // TODO: Get recipients from backend based on type
+        recipientsList = [recipientType]; // This would be handled by backend
+      }
+
+      // TODO: Call POST /api/admin/emails/send from NestJS backend
+      await adminAPI.sendEmail({
+        subject,
+        message,
+        recipients: recipientsList
+      });
+
       addToast('Email sent successfully!', 'success');
       
       // Reset form
-      setEmailData({
-        recipients: [],
-        recipientType: 'custom',
-        subject: '',
-        message: '',
-        isHtml: false
-      });
-      setSelectedTemplate(null);
-    } catch (error) {
+      setSubject('');
+      setMessage('');
+      setRecipients('');
+      setRecipientType('all');
+      
+    } catch (error: any) {
       console.error('Failed to send email:', error);
-      addToast('Failed to send email', 'error');
+      addToast(error.response?.data?.message || 'Failed to send email', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const sendWelcomeEmail = async (email: string) => {
-    if (!email.trim()) {
-      addToast('Please enter an email address', 'error');
-      return;
-    }
+  // Handle template selection
+  const handleTemplateSelect = (template: EmailTemplate) => {
+    setSubject(template.subject);
+    setMessage(template.body);
+    setActiveTab('compose');
+  };
 
-    setLoading(true);
+  // Handle welcome email sending
+  const handleSendWelcomeEmail = async (email: string) => {
     try {
+      setLoading(true);
+      // TODO: Call POST /api/admin/emails/welcome from NestJS backend
       await adminAPI.sendWelcomeEmail(email);
       addToast('Welcome email sent successfully!', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send welcome email:', error);
       addToast('Failed to send welcome email', 'error');
     } finally {
@@ -127,227 +155,216 @@ export default function EmailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Page Header */}
+      <div>
         <h1 className="text-2xl font-bold text-gray-900">Email System</h1>
+        <p className="mt-1 text-sm text-gray-600">
+          Send emails to users, manage templates, and view email history
+        </p>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex">
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          {['compose', 'templates', 'history'].map((tab) => (
             <button
-              onClick={() => setActiveTab('compose')}
-              className={`py-2 px-4 border-b-2 font-medium text-sm ${
-                activeTab === 'compose'
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Compose Email
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`py-2 px-4 border-b-2 font-medium text-sm ${
-                activeTab === 'templates'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Email Templates
-            </button>
-          </nav>
-        </div>
+          ))}
+        </nav>
+      </div>
 
-        {/* Compose Email Tab */}
-        {activeTab === 'compose' && (
-          <div className="p-6">
-            <div className="space-y-6">
-              {/* Recipient Selection */}
+      {/* Compose Email Tab */}
+      {activeTab === 'compose' && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Compose Email</h2>
+          
+          <div className="space-y-4">
+            {/* Recipients */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Recipients
+              </label>
+              <select
+                value={recipientType}
+                onChange={(e) => setRecipientType(e.target.value as any)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Users</option>
+                <option value="users">Regular Users Only</option>
+                <option value="sellers">Sellers Only</option>
+                <option value="custom">Custom Email List</option>
+              </select>
+            </div>
+
+            {/* Custom Recipients Input */}
+            {recipientType === 'custom' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Recipients
-                </label>
-                <div className="space-y-3">
-                  <div className="flex space-x-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="recipientType"
-                        value="custom"
-                        checked={emailData.recipientType === 'custom'}
-                        onChange={(e) => setEmailData({ ...emailData, recipientType: e.target.value as any })}
-                        className="mr-2"
-                      />
-                      Custom Recipients
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="recipientType"
-                        value="all_users"
-                        checked={emailData.recipientType === 'all_users'}
-                        onChange={(e) => setEmailData({ ...emailData, recipientType: e.target.value as any })}
-                        className="mr-2"
-                      />
-                      All Users
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="recipientType"
-                        value="all_sellers"
-                        checked={emailData.recipientType === 'all_sellers'}
-                        onChange={(e) => setEmailData({ ...emailData, recipientType: e.target.value as any })}
-                        className="mr-2"
-                      />
-                      All Sellers
-                    </label>
-                  </div>
-
-                  {emailData.recipientType === 'custom' && (
-                    <input
-                      type="text"
-                      placeholder="Enter email addresses separated by commas"
-                      onChange={handleRecipientChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Subject */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={emailData.subject}
-                  onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-                  placeholder="Email subject"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Message */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Message
+                  Email Addresses (comma-separated)
                 </label>
                 <textarea
-                  value={emailData.message}
-                  onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
-                  placeholder="Email content"
-                  rows={10}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={recipients}
+                  onChange={(e) => setRecipients(e.target.value)}
+                  placeholder="user1@example.com, user2@example.com, ..."
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
                 />
               </div>
+            )}
 
-              {/* Selected Template Info */}
-              {selectedTemplate && (
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Using template:</strong> {selectedTemplate.name}
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    You can edit the subject and message above before sending.
-                  </p>
-                </div>
-              )}
-
-              {/* Send Button */}
-              <div>
-                <button
-                  onClick={sendEmail}
-                  disabled={loading}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Sending...' : 'Send Email'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Email Templates Tab */}
-        {activeTab === 'templates' && (
-          <div className="p-6">
-            <div className="space-y-6">
-              <h3 className="text-lg font-medium text-gray-900">Email Templates</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 cursor-pointer transition-colors"
-                    onClick={() => handleTemplateSelect(template)}
-                  >
-                    <h4 className="font-medium text-gray-900 mb-2">{template.name}</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      <strong>Subject:</strong> {template.subject}
-                    </p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {template.content.substring(0, 100)}...
-                    </p>
-                    <div className="mt-4">
-                      <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                        Use Template
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Template Variables Info */}
-              <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Available Template Variables</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p><code className="bg-gray-200 px-1 rounded">{'{{username}}'}</code> - Recipient's username</p>
-                  <p><code className="bg-gray-200 px-1 rounded">{'{{email}}'}</code> - Recipient's email</p>
-                  <p><code className="bg-gray-200 px-1 rounded">{'{{orderNumber}}'}</code> - Order number (for order emails)</p>
-                  <p><code className="bg-gray-200 px-1 rounded">{'{{totalAmount}}'}</code> - Order total (for order emails)</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    These variables will be automatically replaced when sending emails.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Email Actions</h3>
-        
-        <div className="space-y-4">
-          {/* Send Welcome Email */}
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Send Welcome Email
+            {/* Subject */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subject
               </label>
               <input
-                id="welcomeEmail"
-                type="email"
-                placeholder="Enter user email address"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Enter email subject..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <button
-              onClick={() => {
-                const email = (document.getElementById('welcomeEmail') as HTMLInputElement)?.value;
-                if (email) sendWelcomeEmail(email);
-              }}
-              disabled={loading}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-            >
-              Send Welcome
-            </button>
+
+            {/* Message */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Message
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Enter your message..."
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={8}
+              />
+              <p className="mt-2 text-sm text-gray-500">
+                You can use variables like {'{{name}}'}, {'{{email}}'}, {'{{orderNumber}}'} in your message.
+              </p>
+            </div>
+
+            {/* Send Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleSendEmail}
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  'Send Email'
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Templates Tab */}
+      {activeTab === 'templates' && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Email Templates</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {templates.map((template) => (
+              <div key={template.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                <h3 className="font-medium text-gray-900 mb-2">{template.name}</h3>
+                <p className="text-sm text-gray-600 mb-2">Subject: {template.subject}</p>
+                <p className="text-sm text-gray-500 mb-4 line-clamp-3">{template.body}</p>
+                <button
+                  onClick={() => handleTemplateSelect(template)}
+                  className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Use Template
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* History Tab */}
+      {activeTab === 'history' && (
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">Email History</h2>
+          </div>
+          
+          <div className="overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Subject
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Recipients
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Sent At
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {emailHistory.map((email) => (
+                  <tr key={email.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {email.subject}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {Array.isArray(email.recipients) 
+                        ? `${email.recipients.length} recipients`
+                        : email.recipients
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(email.sentAt).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        email.status === 'sent' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {email.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {emailHistory.length === 0 && (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8V4a1 1 0 00-1-1H7a1 1 0 00-1 1v1m14 0H4" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No emails sent</h3>
+                <p className="mt-1 text-sm text-gray-500">Get started by sending your first email.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

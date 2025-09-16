@@ -145,27 +145,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const originalRequest = error.config;
         console.log('❌ API Error:', error.response?.status, originalRequest.url);
 
-        if (error.response?.status === 401 && !originalRequest._retry && authInitialized) {
-          originalRequest._retry = true;
-
-          try {
-            console.log('🔄 Auto-refreshing token for failed request...');
-            // Try to refresh the token
-            await apiClient.post('/auth/refresh');
-            console.log('✅ Auto-refresh successful, retrying request...');
-            // Retry the original request
-            return apiClient(originalRequest);
-          } catch (refreshError) {
-            console.log('❌ Auto-refresh failed, logging out...');
-            // Refresh failed, clear user state
-            setUser(null);
-            // Only redirect if we're not already on login page and window is available
-            if (typeof window !== 'undefined' && 
-                !window.location.pathname.includes('/login') && 
-                !window.location.pathname.includes('/signup')) {
-              router.push('/login?expired=true');
-            }
-            return Promise.reject(refreshError);
+        if (error.response?.status === 401 && authInitialized) {
+          console.log('❌ Authentication failed, logging out...');
+          // Clear user state on 401 (no auto-refresh since backend doesn't support it)
+          setUser(null);
+          // Only redirect if we're not already on login page and window is available
+          if (typeof window !== 'undefined' && 
+              !window.location.pathname.includes('/login') && 
+              !window.location.pathname.includes('/signup')) {
+            router.push('/login?expired=true');
           }
         }
 

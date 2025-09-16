@@ -1,467 +1,458 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { adminAPI } from '@/lib/adminAPI';
+
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Edit, Trash2, Store, Users } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { adminAPI } from '@/lib/adminAPI';
 
 interface Seller {
   id: number;
-  username: string;
+  businessName: string;
+  contactPerson: string;
   email: string;
-  fullName?: string;
-  businessName?: string;
+  phone: string;
   isVerified: boolean;
   isActive: boolean;
-  createdAt: string;
-  totalProducts?: number;
-  totalSales?: number;
+  totalProducts: number;
+  totalSales: number;
 }
 
 export default function SellersPage() {
   const [sellers, setSellers] = useState<Seller[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<Seller | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'verified' | 'pending' | 'rejected'>('all');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    fullName: '',
+    username: '',
+    email: '',
+    password: '',
+    phone: ''
+  });
   const { addToast } = useToast();
 
-  useEffect(() => {
-    fetchSellers();
-  }, [currentPage, searchTerm, filter]);
-
-  const fetchSellers = async () => {
+    const fetchSellers = async () => {
     try {
       setLoading(true);
-      const response = await adminAPI.getSellers(currentPage, 10, searchTerm);
-      const responseData = response.data as any;
-      setSellers(responseData.sellers || responseData || []);
-      setTotalPages(Math.ceil((responseData.total || sellers.length) / 10));
+      
+      // Fetch real sellers from API
+      const response = await adminAPI.getAllSellers();
+      const sellersData = response.data as any[];
+      
+      // Transform the data to match our interface
+      const transformedSellers: Seller[] = sellersData.map((seller: any) => ({
+        id: seller.id,
+        businessName: seller.fullName || seller.username,
+        contactPerson: seller.fullName || seller.username,
+        email: seller.email,
+        phone: seller.phone || '',
+        businessAddress: '', // Not available in current schema
+        businessType: '', // Not available in current schema  
+        isVerified: seller.isVerified,
+        isActive: seller.isActive,
+        taxNumber: '', // Not available in current schema
+        bankDetails: '', // Not available in current schema
+        documentsUploaded: false, // Not available in current schema
+        joinedDate: seller.createdAt,
+        totalProducts: 0, // Would need to be calculated
+        totalSales: 0 // Would need to be calculated
+      }));
+      
+      setSellers(transformedSellers);
     } catch (error) {
       console.error('Failed to fetch sellers:', error);
-      addToast('Failed to load sellers', 'error');
+      addToast('Failed to load sellers from database. Using demo data.', 'error');
+      
+      // Fallback to empty array
+      setSellers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const verifySeller = async (sellerId: number) => {
-    try {
-      await adminAPI.verifySeller(sellerId);
-      addToast('Seller verified successfully', 'success');
-      fetchSellers();
-    } catch (error) {
-      console.error('Failed to verify seller:', error);
-      addToast('Failed to verify seller', 'error');
-    }
-  };
+  useEffect(() => {
+    fetchSellers();
+  }, []);
 
-  const rejectSeller = async (sellerId: number) => {
-    if (window.confirm('Are you sure you want to reject this seller?')) {
-      try {
-        await adminAPI.rejectSeller(sellerId);
-        addToast('Seller rejected successfully', 'success');
-        fetchSellers();
-      } catch (error) {
-        console.error('Failed to reject seller:', error);
-        addToast('Failed to reject seller', 'error');
-      }
-    }
-  };
-
-  const toggleSellerStatus = async (sellerId: number) => {
+  const handleToggleStatus = async (seller: Seller) => {
     try {
-      await adminAPI.toggleSellerStatus(sellerId);
-      addToast('Seller status updated successfully', 'success');
-      fetchSellers();
+      setLoading(true);
+      
+      // Use the new toggleSellerStatus method which properly handles the API
+      await adminAPI.toggleSellerStatus(seller.id);
+      
+      // Update local state
+      setSellers(sellers.map(s => 
+        s.id === seller.id ? { ...s, isActive: !s.isActive } : s
+      ));
+      
+      addToast(`Seller ${seller.isActive ? 'deactivated' : 'activated'} successfully`, 'success');
     } catch (error) {
       console.error('Failed to toggle seller status:', error);
       addToast('Failed to update seller status', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteSeller = async (sellerId: number) => {
-    if (window.confirm('Are you sure you want to delete this seller?')) {
-      try {
-        await adminAPI.deleteSeller(sellerId);
-        addToast('Seller deleted successfully', 'success');
-        fetchSellers();
-      } catch (error) {
-        console.error('Failed to delete seller:', error);
-        addToast('Failed to delete seller', 'error');
+  const handleToggleVerification = async (seller: Seller) => {
+    try {
+      setLoading(true);
+      await adminAPI.verifySeller(seller.id);
+      
+      // Update local state
+      setSellers(sellers.map(s => 
+        s.id === seller.id ? { ...s, isVerified: !s.isVerified } : s
+      ));
+      
+      addToast(`Seller ${seller.isVerified ? 'unverified' : 'verified'} successfully`, 'success');
+    } catch (error: any) {
+      console.error('Failed to toggle verification:', error);
+      
+      if (error.response?.status === 404) {
+        addToast('Seller not found or not a valid seller account', 'error');
+      } else if (error.response?.status === 409) {
+        addToast('Seller is already verified', 'warning');
+      } else if (error.response?.status === 401) {
+        addToast('You need to be logged in as an admin to perform this action', 'error');
+      } else {
+        addToast('Failed to update verification status', 'error');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const openSellerModal = (seller: Seller) => {
+  const handleDeleteSeller = async () => {
+    if (!selectedSeller) return;
+    
+    try {
+      setLoading(true);
+      await adminAPI.deleteSeller(selectedSeller.id);
+      
+      setSellers(sellers.filter(s => s.id !== selectedSeller.id));
+      setShowDeleteModal(false);
+      setSelectedSeller(null);
+      
+      addToast('Seller deleted successfully', 'success');
+    } catch (error) {
+      console.error('Failed to delete seller:', error);
+      addToast('Failed to delete seller', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDelete = (seller: Seller) => {
     setSelectedSeller(seller);
-    setShowModal(true);
+    setShowDeleteModal(true);
   };
 
-  const closeSellerModal = () => {
-    setSelectedSeller(null);
-    setShowModal(false);
+  const handleCreateSeller = async () => {
+    try {
+      setLoading(true);
+      
+      // Create new seller using the adminAPI
+      const response = await adminAPI.createSeller(createForm);
+      
+      // Add to local state
+      const newSeller: Seller = {
+        id: (response.data as any).id,
+        businessName: createForm.fullName,
+        contactPerson: createForm.fullName,
+        email: createForm.email,
+        phone: createForm.phone,
+        isVerified: false,
+        isActive: true,
+        totalProducts: 0,
+        totalSales: 0
+      };
+      
+      setSellers([...sellers, newSeller]);
+      setShowCreateModal(false);
+      setCreateForm({ fullName: '', username: '', email: '', password: '', phone: '' });
+      
+      addToast('Seller created successfully', 'success');
+    } catch (error: any) {
+      console.error('Failed to create seller:', error);
+      
+      if (error.response?.status === 409) {
+        addToast('Username or email already exists', 'error');
+      } else {
+        addToast('Failed to create seller', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const filteredSellers = sellers.filter(seller => {
-    if (filter === 'verified') return seller.isVerified;
-    if (filter === 'pending') return !seller.isVerified && seller.isActive;
-    if (filter === 'rejected') return !seller.isActive;
-    return true;
-  });
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Sellers Management</h1>
-        <button
-          onClick={fetchSellers}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Refresh
-        </button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Seller Management</h1>
+        <p className="mt-2 text-gray-600">Manage and monitor all registered sellers</p>
       </div>
 
-      {/* Search and Filter */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <div className="flex-1 w-full">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Users className="h-8 w-8 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Sellers</p>
+              <p className="text-2xl font-bold text-gray-900">{sellers.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="h-4 w-4 bg-green-500 rounded-full"></div>
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Active Sellers</p>
+              <p className="text-2xl font-bold text-green-600">{sellers.filter(s => s.isActive).length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="h-4 w-4 bg-blue-500 rounded-full"></div>
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Verified Sellers</p>
+              <p className="text-2xl font-bold text-blue-600">{sellers.filter(s => s.isVerified).length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                <div className="h-4 w-4 bg-yellow-500 rounded-full"></div>
+              </div>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Pending Verification</p>
+              <p className="text-2xl font-bold text-yellow-600">{sellers.filter(s => !s.isVerified).length}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Controls */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
-              placeholder="Search sellers by name, email, or business..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Search sellers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <div>
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Sellers</option>
-              <option value="verified">Verified</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-          <button
-            onClick={() => fetchSellers()}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Search
+            <Plus className="h-4 w-4 mr-2" />
+            Add Seller
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-100">
-              <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Sellers</p>
-              <p className="text-2xl font-semibold text-gray-900">{sellers.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-green-100">
-              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Verified</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {sellers.filter(s => s.isVerified).length}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-yellow-100">
-              <svg className="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Pending</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {sellers.filter(s => !s.isVerified && s.isActive).length}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-3 rounded-full bg-red-100">
-              <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Rejected</p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {sellers.filter(s => !s.isActive).length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Sellers Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Sellers List</h3>
-          
-          {loading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse flex space-x-4 p-4">
-                  <div className="rounded-full bg-gray-300 h-10 w-10"></div>
-                  <div className="flex-1 space-y-2 py-1">
-                    <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+      {/* Sellers List */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6">
+          <div className="space-y-4">
+            {sellers
+              .filter(seller => 
+                seller.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                seller.contactPerson.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map(seller => (
+              <div key={seller.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <Store className="h-10 w-10 text-blue-600 bg-blue-100 rounded-full p-2" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{seller.businessName}</h3>
+                      <p className="text-gray-600">{seller.contactPerson}</p>
+                      <p className="text-gray-600">{seller.email}</p>
+                      <div className="mt-2 flex space-x-2">
+                        <button
+                          onClick={() => handleToggleVerification(seller)}
+                          disabled={loading}
+                          className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                            seller.isVerified 
+                              ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' 
+                              : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                          } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {seller.isVerified ? 'Verified' : 'Verify'}
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(seller)}
+                          disabled={loading}
+                          className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                            seller.isActive 
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                              : 'bg-red-100 text-red-800 hover:bg-red-200'
+                          } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {seller.isActive ? 'Active' : 'Inactive'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">{seller.totalProducts} products</p>
+                    <p className="text-sm text-gray-600">${seller.totalSales.toLocaleString()}</p>
+                    <div className="mt-2 flex space-x-2">
+                      <button 
+                        className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
+                        title="Edit Seller"
+                        disabled={loading}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button 
+                        onClick={() => confirmDelete(seller)}
+                        className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                        title="Delete Seller"
+                        disabled={loading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Seller
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Business
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Products
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredSellers.map((seller) => (
-                    <tr key={seller.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center text-white font-medium">
-                              {seller.username[0].toUpperCase()}
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {seller.fullName || seller.username}
-                            </div>
-                            <div className="text-sm text-gray-500">{seller.email}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {seller.businessName || 'Not specified'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <span className={`
-                            inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                            ${seller.isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}
-                          `}>
-                            {seller.isVerified ? 'Verified' : 'Pending'}
-                          </span>
-                          <span className={`
-                            inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                            ${seller.isActive ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}
-                          `}>
-                            {seller.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {seller.totalProducts || 0}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(seller.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <button
-                          onClick={() => openSellerModal(seller)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          View
-                        </button>
-                        {!seller.isVerified && seller.isActive && (
-                          <button
-                            onClick={() => verifySeller(seller.id)}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Verify
-                          </button>
-                        )}
-                        {!seller.isVerified && seller.isActive && (
-                          <button
-                            onClick={() => rejectSeller(seller.id)}
-                            className="text-orange-600 hover:text-orange-900"
-                          >
-                            Reject
-                          </button>
-                        )}
-                        <button
-                          onClick={() => toggleSellerStatus(seller.id)}
-                          className={`${
-                            seller.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                          }`}
-                        >
-                          {seller.isActive ? 'Disable' : 'Enable'}
-                        </button>
-                        <button
-                          onClick={() => deleteSeller(seller.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          <div className="mt-6 flex items-center justify-between">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Page <span className="font-medium">{currentPage}</span> of{' '}
-                  <span className="font-medium">{totalPages}</span>
-                </p>
               </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </nav>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Seller Details Modal */}
-      {showModal && selectedSeller && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Seller Details</h3>
-                <button
-                  onClick={closeSellerModal}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Username</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedSeller.username}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedSeller.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedSeller.fullName || 'Not provided'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Business Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedSeller.businessName || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {selectedSeller.isVerified ? 'Verified' : 'Pending Verification'} - 
-                    {selectedSeller.isActive ? ' Active' : ' Inactive'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Products</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedSeller.totalProducts || 0}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Sales</label>
-                  <p className="mt-1 text-sm text-gray-900">${selectedSeller.totalSales || 0}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Created</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {new Date(selectedSeller.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedSeller && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Seller</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{selectedSeller.businessName}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteSeller}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                disabled={loading}
+              >
+                {loading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={closeSellerModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Close
-                </button>
+      {/* Create Seller Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Seller</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={createForm.fullName}
+                  onChange={(e) => setCreateForm({...createForm, fullName: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter full name"
+                />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                  type="text"
+                  value={createForm.username}
+                  onChange={(e) => setCreateForm({...createForm, username: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={createForm.phone}
+                  onChange={(e) => setCreateForm({...createForm, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setCreateForm({ fullName: '', username: '', email: '', password: '', phone: '' });
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateSeller}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={loading || !createForm.fullName || !createForm.username || !createForm.email || !createForm.password}
+              >
+                {loading ? 'Creating...' : 'Create Seller'}
+              </button>
             </div>
           </div>
         </div>

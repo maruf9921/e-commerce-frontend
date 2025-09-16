@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar/Navbar";
+import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer/Footer";
 import CursorTrail from "@/components/CursorTrail/CursorTrail";
 import { AuthProvider } from "@/contexts/AuthContextNew";
+import { ToastProvider } from "@/contexts/ToastContext";
+import ClientWrapper from "@/components/ClientWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,8 +21,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: process.env.NEXT_PUBLIC_APP_NAME || "E-Commerce App",
   description: "Your one-stop e-commerce destination for quality products",
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -41,9 +47,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       suppressHydrationWarning={true}>
         <AuthProvider>
-          <Navbar />
-          {children}
-          <Footer />
+          <ToastProvider>
+            <ClientWrapper>
+              <Navigation />
+              {children}
+              <Footer />
+            </ClientWrapper>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

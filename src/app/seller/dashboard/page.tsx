@@ -1,13 +1,47 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSellerGuard } from '@/hooks/useAuthGuard';
 import { useAuth } from '@/contexts/AuthContextNew';
+import { sellerDashboardAPI } from '@/utils/api';
+import { Package, DollarSign, ShoppingCart, Users } from 'lucide-react';
+
+interface DashboardStats {
+  totalProducts: number;
+  totalSales: number;
+  pendingOrders: number;
+  totalCustomers: number;
+}
 
 export default function SellerDashboard() {
   const { user, loading, isAuthorized } = useSellerGuard();
   const { logout } = useAuth();
   const router = useRouter();
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  // Fetch dashboard statistics
+  const fetchDashboardStats = async () => {
+    if (!user || !user.isVerified) return;
+    
+    try {
+      setStatsLoading(true);
+      const response = await sellerDashboardAPI.getDashboardOverview();
+      setDashboardStats(response.data as DashboardStats);
+      console.log('📊 Dashboard stats loaded:', response.data);
+    } catch (error) {
+      console.error('❌ Error fetching dashboard stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Load dashboard data when component mounts and user is verified
+  useEffect(() => {
+    if (user && user.isVerified) {
+      fetchDashboardStats();
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -108,6 +142,54 @@ export default function SellerDashboard() {
           </div>
         </div>
 
+        {/* Dashboard Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Total Products</p>
+                <p className="text-2xl font-bold text-white">
+                  {statsLoading ? '...' : dashboardStats?.totalProducts || 0}
+                </p>
+              </div>
+              <Package className="w-8 h-8 text-blue-500" />
+            </div>
+          </div>
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Total Sales</p>
+                <p className="text-2xl font-bold text-white">
+                  ${statsLoading ? '...' : (dashboardStats?.totalSales || 0).toFixed(2)}
+                </p>
+              </div>
+              <DollarSign className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Pending Orders</p>
+                <p className="text-2xl font-bold text-white">
+                  {statsLoading ? '...' : dashboardStats?.pendingOrders || 0}
+                </p>
+              </div>
+              <ShoppingCart className="w-8 h-8 text-yellow-500" />
+            </div>
+          </div>
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Total Customers</p>
+                <p className="text-2xl font-bold text-white">
+                  {statsLoading ? '...' : dashboardStats?.totalCustomers || 0}
+                </p>
+              </div>
+              <Users className="w-8 h-8 text-purple-500" />
+            </div>
+          </div>
+        </div>
+
         {/* Dashboard Features */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* My Products */}
@@ -170,6 +252,23 @@ export default function SellerDashboard() {
               className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
             >
               Edit Profile
+            </button>
+          </div>
+
+          {/* Mail Center */}
+          <div className="bg-gray-800 rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-white mb-3">Mail Center</h3>
+            <p className="text-gray-400 mb-4">Communicate with your customers</p>
+            <button
+              onClick={() => router.push('/seller/mail')}
+              disabled={!user.isVerified}
+              className={`w-full px-4 py-2 rounded-md transition-colors ${
+                user.isVerified
+                  ? 'bg-pink-600 text-white hover:bg-pink-700'
+                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {user.isVerified ? 'Send Messages' : 'Verification Required'}
             </button>
           </div>
 

@@ -13,16 +13,10 @@ const Footer: React.FC = () => {
         {/* Right side: Links */}
         <div className="flex space-x-6 mt-4 md:mt-0">
           <Link
-            href="/about"
+            href="/products"
             className="hover:text-purple-400 transition duration-200"
           >
-            About
-          </Link>
-          <Link
-            href="/contact"
-            className="hover:text-purple-400 transition duration-200"
-          >
-            Contact
+            Products
           </Link>
           <Link
             href="/privacy"

@@ -1,190 +1,329 @@
-import React from "react";
-import Link from "next/link";
+'use client';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSellerGuard } from '@/hooks/useAuthGuard';
 
-export default function SellerAnalyticsPage() {
-  // Mock analytics data
-  const analyticsData = {
-    revenue: {
-      today: 1250,
-      thisWeek: 8500,
-      thisMonth: 28750,
-      lastMonth: 24500
-    },
-    orders: {
-      today: 15,
-      thisWeek: 89,
-      thisMonth: 324,
-      lastMonth: 298
-    },
-    visitors: {
-      today: 245,
-      thisWeek: 1678,
-      thisMonth: 5890,
-      lastMonth: 5234
-    },
-    topProducts: [
-      { name: "Wireless Headphones", sales: 45, revenue: 4455 },
-      { name: "Gaming Mouse", sales: 38, revenue: 2242 },
-      { name: "Smart Watch", sales: 32, revenue: 4768 },
-      { name: "Mechanical Keyboard", sales: 28, revenue: 3612 }
-    ],
-    salesData: [
-      { month: "Jan", sales: 18500 },
-      { month: "Feb", sales: 22300 },
-      { month: "Mar", sales: 19800 },
-      { month: "Apr", sales: 25600 },
-      { month: "May", sales: 28900 },
-      { month: "Jun", sales: 31200 },
-    ]
+interface DashboardAnalytics {
+  totalProducts: number;
+  activeProducts: number;
+  totalOrders: number;
+  totalRevenue: number;
+  pendingOrders: number;
+  completedOrders: number;
+  averageOrderValue: number;
+  conversionRate: number;
+  topSellingProducts: Array<{
+    productId: number;
+    productName: string;
+    totalSold: number;
+    revenue: number;
+  }>;
+  monthlyStats: Array<{
+    month: string;
+    orders: number;
+    revenue: number;
+  }>;
+  recentActivity: Array<{
+    type: string;
+    description: string;
+    timestamp: string;
+  }>;
+}
+
+interface ProductAnalytics {
+  productViews: number;
+  totalSales: number;
+  averageRating: number;
+  stockLevel: string;
+  performanceScore: number;
+}
+
+export default function SellerAnalytics() {
+  const { user, loading, isAuthorized } = useSellerGuard();
+  const router = useRouter();
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+  const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+
+  useEffect(() => {
+    if (user && isAuthorized) {
+      fetchAnalytics();
+    }
+  }, [user, isAuthorized, selectedPeriod]);
+
+  const fetchAnalytics = async () => {
+    setLoadingData(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Fetch dashboard analytics
+      const dashboardResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sellers/dashboard/analytics?period=${selectedPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (dashboardResponse.ok) {
+        const dashboardData = await dashboardResponse.json();
+        setAnalytics(dashboardData);
+      }
+
+      // Fetch product analytics summary
+      const productResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/seller/analytics`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (productResponse.ok) {
+        const productData = await productResponse.json();
+        setProductAnalytics(productData);
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
+    } finally {
+      setLoadingData(false);
+    }
   };
 
-  const getGrowthPercentage = (current: number, previous: number) => {
-    const growth = ((current - previous) / previous) * 100;
-    return growth.toFixed(1);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="text-white text-center">
+          <h2 className="text-2xl font-bold mb-4">Unauthorized</h2>
+          <p>You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gray-900">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Analytics Dashboard</h1>
-          <p className="text-gray-400">Track your sales performance and growth</p>
-        </div>
-        <Link href="/seller" className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition">
-          Back to Dashboard
-        </Link>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gray-800 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-400">Monthly Revenue</h3>
-            <span className="text-green-400 text-sm">
-              +{getGrowthPercentage(analyticsData.revenue.thisMonth, analyticsData.revenue.lastMonth)}%
-            </span>
+      <header className="bg-gray-800 border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Sales Analytics</h1>
+              <p className="text-gray-400">Track your performance and growth</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                className="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2"
+              >
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+                <option value="1y">Last year</option>
+              </select>
+              <button
+                onClick={() => router.push('/seller/dashboard')}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Back to Dashboard
+              </button>
+            </div>
           </div>
-          <div className="text-2xl font-bold text-white mb-1">${analyticsData.revenue.thisMonth.toLocaleString()}</div>
-          <div className="text-sm text-gray-400">vs ${analyticsData.revenue.lastMonth.toLocaleString()} last month</div>
         </div>
+      </header>
 
-        <div className="bg-gray-800 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-400">Monthly Orders</h3>
-            <span className="text-green-400 text-sm">
-              +{getGrowthPercentage(analyticsData.orders.thisMonth, analyticsData.orders.lastMonth)}%
-            </span>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loadingData ? (
+          <div className="text-center py-8">
+            <div className="text-white">Loading analytics...</div>
           </div>
-          <div className="text-2xl font-bold text-white mb-1">{analyticsData.orders.thisMonth}</div>
-          <div className="text-sm text-gray-400">vs {analyticsData.orders.lastMonth} last month</div>
-        </div>
+        ) : error ? (
+          <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-center">
+            <p className="text-red-300">{error}</p>
+            <button
+              onClick={fetchAnalytics}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* Key Metrics */}
+            {analytics && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-green-600 rounded-md">
+                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-400">Total Revenue</p>
+                      <p className="text-2xl font-bold text-white">${analytics.totalRevenue.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </div>
 
-        <div className="bg-gray-800 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-400">Store Visitors</h3>
-            <span className="text-green-400 text-sm">
-              +{getGrowthPercentage(analyticsData.visitors.thisMonth, analyticsData.visitors.lastMonth)}%
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-white mb-1">{analyticsData.visitors.thisMonth.toLocaleString()}</div>
-          <div className="text-sm text-gray-400">vs {analyticsData.visitors.lastMonth.toLocaleString()} last month</div>
-        </div>
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-blue-600 rounded-md">
+                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-400">Total Orders</p>
+                      <p className="text-2xl font-bold text-white">{analytics.totalOrders}</p>
+                    </div>
+                  </div>
+                </div>
 
-        <div className="bg-gray-800 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-400">Avg. Order Value</h3>
-            <span className="text-blue-400 text-sm">
-              ${(analyticsData.revenue.thisMonth / analyticsData.orders.thisMonth).toFixed(2)}
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-white mb-1">
-            ${(analyticsData.revenue.thisMonth / analyticsData.orders.thisMonth).toFixed(0)}
-          </div>
-          <div className="text-sm text-gray-400">per order this month</div>
-        </div>
-      </div>
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-purple-600 rounded-md">
+                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-400">Active Products</p>
+                      <p className="text-2xl font-bold text-white">{analytics.activeProducts}</p>
+                    </div>
+                  </div>
+                </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Sales Chart */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-6">Revenue Trend</h2>
-          <div className="space-y-4">
-            {analyticsData.salesData.map((data, index) => (
-              <div key={data.month} className="flex items-center">
-                <div className="w-12 text-gray-400 text-sm">{data.month}</div>
-                <div className="flex-1 mx-4">
-                  <div className="bg-gray-700 rounded-full h-6 relative">
-                    <div 
-                      className="bg-purple-500 h-6 rounded-full flex items-center justify-end pr-2"
-                      style={{ width: `${(data.sales / 35000) * 100}%` }}
-                    >
-                      <span className="text-white text-xs font-medium">
-                        ${(data.sales / 1000).toFixed(0)}k
-                      </span>
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-indigo-600 rounded-md">
+                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-400">Avg Order Value</p>
+                      <p className="text-2xl font-bold text-white">${analytics.averageOrderValue.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
 
-        {/* Top Products */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-6">Top Selling Products</h2>
-          <div className="space-y-4">
-            {analyticsData.topProducts.map((product, index) => (
-              <div key={product.name} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <div className="text-white font-medium">{product.name}</div>
-                    <div className="text-gray-400 text-sm">{product.sales} sales</div>
+            {/* Performance Metrics */}
+            {analytics && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Order Status Breakdown</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Pending Orders</span>
+                      <span className="text-yellow-400 font-medium">{analytics.pendingOrders}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Completed Orders</span>
+                      <span className="text-green-400 font-medium">{analytics.completedOrders}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400">Conversion Rate</span>
+                      <span className="text-blue-400 font-medium">{analytics.conversionRate.toFixed(1)}%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="text-green-400 font-semibold">
-                  ${product.revenue.toLocaleString()}
+
+                {productAnalytics && (
+                  <div className="bg-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Product Performance</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Total Views</span>
+                        <span className="text-blue-400 font-medium">{productAnalytics.productViews.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Total Sales</span>
+                        <span className="text-green-400 font-medium">{productAnalytics.totalSales}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Average Rating</span>
+                        <span className="text-yellow-400 font-medium">{productAnalytics.averageRating.toFixed(1)} ⭐</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Performance Score</span>
+                        <span className="text-purple-400 font-medium">{productAnalytics.performanceScore.toFixed(1)}/100</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Top Selling Products */}
+            {analytics && analytics.topSellingProducts.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Top Selling Products</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-700">
+                        <th className="text-left text-sm font-medium text-gray-400 pb-2">Product</th>
+                        <th className="text-left text-sm font-medium text-gray-400 pb-2">Units Sold</th>
+                        <th className="text-left text-sm font-medium text-gray-400 pb-2">Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody className="space-y-2">
+                      {analytics.topSellingProducts.map((product, index) => (
+                        <tr key={product.productId} className="border-b border-gray-700">
+                          <td className="py-3 text-gray-300">{product.productName}</td>
+                          <td className="py-3 text-white font-medium">{product.totalSold}</td>
+                          <td className="py-3 text-green-400 font-medium">${product.revenue.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
+            )}
 
-      {/* Today's Performance */}
-      <div className="mt-8 bg-gray-800 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-white mb-6">Today's Performance</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-400 mb-2">${analyticsData.revenue.today}</div>
-            <div className="text-gray-400">Revenue Today</div>
+            {/* Quick Actions */}
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button
+                  onClick={() => router.push('/seller/orders')}
+                  className="p-4 bg-blue-600 rounded-lg text-white text-center hover:bg-blue-700 transition-colors"
+                >
+                  <div className="text-lg font-semibold">Manage Orders</div>
+                  <div className="text-sm opacity-80">View and update order status</div>
+                </button>
+                <button
+                  onClick={() => router.push('/seller/financial')}
+                  className="p-4 bg-green-600 rounded-lg text-white text-center hover:bg-green-700 transition-colors"
+                >
+                  <div className="text-lg font-semibold">Financial Dashboard</div>
+                  <div className="text-sm opacity-80">Track earnings and payouts</div>
+                </button>
+                <button
+                  onClick={() => router.push('/seller/products')}
+                  className="p-4 bg-purple-600 rounded-lg text-white text-center hover:bg-purple-700 transition-colors"
+                >
+                  <div className="text-lg font-semibold">Manage Products</div>
+                  <div className="text-sm opacity-80">Add or edit your listings</div>
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-400 mb-2">{analyticsData.orders.today}</div>
-            <div className="text-gray-400">Orders Today</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-400 mb-2">{analyticsData.visitors.today}</div>
-            <div className="text-gray-400">Visitors Today</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="mt-8 flex flex-wrap gap-4 justify-center">
-        <Link href="/seller/analytics/detailed" className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
-          View Detailed Report
-        </Link>
-        <Link href="/seller/analytics/export" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
-          Export Data
-        </Link>
-        <Link href="/seller/analytics/settings" className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
-          Analytics Settings
-        </Link>
-      </div>
+        )}
+      </main>
     </div>
   );
 }

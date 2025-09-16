@@ -1,0 +1,290 @@
+nohup: ignoring input
+
+> e-commerce-frontend@0.1.0 dev
+> next dev --port 7000
+
+   ▲ Next.js 15.5.2
+   - Local:        http://localhost:7000
+   - Network:      http://192.168.0.146:7000
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ✓ optimizeCss
+
+ ✓ Starting...
+ ✓ Ready in 2.5s
+ ○ Compiling /dashboard/admin/orders ...
+
+[2m[193.56ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[  0.11ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 69.06ms][22m  [2m ↳ [22mSetup compiler
+[2m[  0.70ms][22m    [2m ↳ [22mPostCSS AST -> Tailwind CSS AST
+[2m[ 68.31ms][22m    [2m ↳ [22mCreate compiler
+[2m[  0.13ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[  2.52ms][22m  [2m ↳ [22mSetup scanner
+[2m[ 19.47ms][22m  [2m ↳ [22mScan for candidates
+[2m[  9.61ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 63.06ms][22m  [2m ↳ [22mBuild utilities
+[2m[ 13.46ms][22m  [2m ↳ [22mTransform Tailwind CSS AST into PostCSS AST
+[2m[ 15.38ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled /dashboard/admin/orders in 8.7s (884 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/orders 200 in 10964ms
+ ○ Compiling /login ...
+
+[2m[124.03ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[  0.03ms][22m  [2m ↳ [22mQuick bail check
+[2m[  0.15ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[ 32.11ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 45.90ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[  3.78ms][22m  [2m ↳ [22mBuild utilities
+[2m[ 41.52ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled /login in 2.6s (893 modules)
+ GET /login?redirect=%2Fdashboard%2Fadmin 200 in 3040ms
+Frontend connected to: http://localhost:4002
+ GET /login?redirect=%2Fdashboard%2Fadmin 200 in 159ms
+Frontend connected to: http://localhost:4002
+ GET /login?redirect=/dashboard/admin 200 in 298ms
+ GET /login 200 in 55ms
+ ○ Compiling /admin/dashboard ...
+ ✓ Compiled /admin/dashboard in 1209ms (886 modules)
+ GET /admin/dashboard 200 in 1434ms
+ ○ Compiling /dashboard/admin ...
+ ✓ Compiled /dashboard/admin in 1465ms (893 modules)
+ GET /dashboard/admin 200 in 1774ms
+ GET /dashboard/admin 200 in 99ms
+ ○ Compiling /dashboard/admin/products ...
+ ✓ Compiled /dashboard/admin/products in 3.2s (937 modules)
+ GET /dashboard/admin/products 200 in 3771ms
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 405ms
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 199ms
+
+[2m[46.52ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.08ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.16ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[11.93ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 9.13ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.59ms][22m  [2m ↳ [22mBuild utilities
+[2m[23.03ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 3.8s (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 3942ms
+
+[2m[137.11ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[  0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[  0.07ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[ 49.92ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 28.54ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[  5.68ms][22m  [2m ↳ [22mBuild utilities
+[2m[ 52.75ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 2.6s (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 657ms
+
+[2m[465.81ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[  0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[  0.05ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[ 59.84ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 43.15ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 13.72ms][22m  [2m ↳ [22mBuild utilities
+[2m[348.87ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 1570ms (355 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 218ms
+
+[2m[111.88ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[  0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[  0.07ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[ 28.73ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 25.94ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 29.20ms][22m  [2m ↳ [22mBuild utilities
+[2m[ 27.76ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 920ms (355 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 560ms
+
+[2m[57.37ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.07ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[24.41ms][22m  [2m ↳ [22mScan for candidates
+[2m[10.94ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.73ms][22m  [2m ↳ [22mBuild utilities
+[2m[21.07ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 606ms (355 modules)
+
+[2m[28.98ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.05ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[ 6.68ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 9.72ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.36ms][22m  [2m ↳ [22mBuild utilities
+[2m[11.59ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+Frontend connected to: http://localhost:4002
+ ✓ Compiled in 608ms (355 modules)
+ GET /dashboard/admin/products 200 in 585ms
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 153ms
+
+[2m[41.36ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.02ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.08ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[14.33ms][22m  [2m ↳ [22mScan for candidates
+[2m[14.22ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.41ms][22m  [2m ↳ [22mBuild utilities
+[2m[12.12ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 851ms (355 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 168ms
+
+[2m[55.18ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.05ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[17.36ms][22m  [2m ↳ [22mScan for candidates
+[2m[20.63ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.32ms][22m  [2m ↳ [22mBuild utilities
+[2m[16.68ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 608ms (355 modules)
+
+[2m[27.46ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.05ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[14.41ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 6.87ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.32ms][22m  [2m ↳ [22mBuild utilities
+[2m[ 5.66ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 634ms (355 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 811ms
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 111ms
+
+[2m[55.19ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.06ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[26.84ms][22m  [2m ↳ [22mScan for candidates
+[2m[15.60ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.31ms][22m  [2m ↳ [22mBuild utilities
+[2m[12.22ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 3.4s (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 374ms
+
+[2m[33.13ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.06ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[13.56ms][22m  [2m ↳ [22mScan for candidates
+[2m[10.85ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.37ms][22m  [2m ↳ [22mBuild utilities
+[2m[ 8.12ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 2.2s (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 309ms
+
+[2m[38.55ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.07ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[20.62ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 7.05ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.42ms][22m  [2m ↳ [22mBuild utilities
+[2m[10.19ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 2.3s (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 340ms
+
+[2m[58.08ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.06ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[16.12ms][22m  [2m ↳ [22mScan for candidates
+[2m[21.14ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.37ms][22m  [2m ↳ [22mBuild utilities
+[2m[20.01ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 2.5s (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 656ms
+
+[2m[47.89ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.13ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[18.47ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 7.71ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.40ms][22m  [2m ↳ [22mBuild utilities
+[2m[20.77ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 1978ms (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 522ms
+
+[2m[79.55ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.06ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[36.51ms][22m  [2m ↳ [22mScan for candidates
+[2m[16.58ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.41ms][22m  [2m ↳ [22mBuild utilities
+[2m[25.82ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 1480ms (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 739ms
+
+[2m[32.36ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.06ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[13.14ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 8.77ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.42ms][22m  [2m ↳ [22mBuild utilities
+[2m[ 9.82ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+
+[2m[84.80ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.08ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[32.37ms][22m  [2m ↳ [22mScan for candidates
+[2m[17.04ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.39ms][22m  [2m ↳ [22mBuild utilities
+[2m[18.08ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 8.5s (941 modules)
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 526ms
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 332ms
+Frontend connected to: http://localhost:4002
+ GET /dashboard/admin/products 200 in 127ms
+ GET /dashboard/admin 200 in 63ms
+
+[2m[34.96ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.10ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[ 9.91ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 6.62ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.40ms][22m  [2m ↳ [22mBuild utilities
+[2m[17.45ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 540ms (355 modules)
+
+[2m[32.50ms][22m [@tailwindcss/postcss] src/app/globals.css
+[2m[ 0.01ms][22m  [2m ↳ [22mQuick bail check
+[2m[ 0.06ms][22m  [2m ↳ [22mRegister full rebuild paths
+[2m[12.38ms][22m  [2m ↳ [22mScan for candidates
+[2m[ 4.86ms][22m  [2m ↳ [22mRegister dependency messages
+[2m[ 0.38ms][22m  [2m ↳ [22mBuild utilities
+[2m[14.68ms][22m  [2m ↳ [22mUpdate PostCSS AST
+
+ ✓ Compiled in 299ms (355 modules)

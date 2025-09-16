@@ -2,7 +2,7 @@
 import CursorTrail from "@/components/CursorTrail/CursorTrail";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContextNew";
 import { useRouter } from "next/navigation";
 
 export default function SignupPage() {

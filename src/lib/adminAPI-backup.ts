@@ -39,34 +39,6 @@ export const adminAPI = {
   getAllUsers: () => 
     api.get('/users'),
 
-  getUsers: (page = 1, limit = 10, search = '') => {
-    // Backend doesn't support pagination yet, so we'll fetch all and handle client-side
-    return api.get('/users').then(response => {
-      const users = Array.isArray(response.data) ? response.data : [];
-      const filteredUsers = search 
-        ? users.filter((user: any) => 
-            user.username?.toLowerCase().includes(search.toLowerCase()) ||
-            user.email?.toLowerCase().includes(search.toLowerCase()) ||
-            user.fullName?.toLowerCase().includes(search.toLowerCase())
-          )
-        : users;
-      
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-      
-      return {
-        ...response,
-        data: {
-          users: paginatedUsers,
-          total: filteredUsers.length,
-          page: page,
-          totalPages: Math.ceil(filteredUsers.length / limit)
-        }
-      };
-    });
-  },
-
   getUserById: (id: number) => 
     api.get(`/users/${id}`),
 
@@ -115,7 +87,7 @@ export const adminAPI = {
   toggleSellerStatus: async (id: number) => {
     // Since there's no specific toggle endpoint, we'll get the seller first, then update
     const seller = await api.get(`/sellers/id/${id}`);
-    const currentStatus = (seller.data as any).isActive;
+    const currentStatus = seller.data.isActive;
     return api.patch(`/sellers/update/${id}`, { isActive: !currentStatus });
   },
 
@@ -123,9 +95,112 @@ export const adminAPI = {
   searchSellers: (substring: string) => 
     api.get(`/sellers/search/${substring}`),
 
-  // Product management operations
-  getAllProducts: (currentPage: number, p0: number, searchTerm: string) => 
-    api.get('/products'),
+  getSellerById: (id: number) => 
+    api.get(`/sellers/id/${id}`),
+
+  toggleSellerStatus: async (id: number) => {
+    // Since there's no specific toggle endpoint, we'll get the seller first, then update
+    const seller = await api.get(`/sellers/id/${id}`);
+    const currentStatus = seller.data.isActive;
+    return api.patch(`/sellers/update/${id}`, { isActive: !currentStatus });
+  },
+
+  // Search sellers
+  searchSellers: (substring: string) => 
+    api.get(`/sellers/search/${substring}`),ios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002',
+  withCredentials: true, // This ensures httpOnly cookies are sent
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add any additional headers if needed
+api.interceptors.request.use(
+  (config) => {
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle token expiration and errors
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Redirect to login page on 401 (no auto-refresh since backend doesn't support it)
+      window.location.href = '/login?expired=true';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Admin API functions
+export const adminAPI = {
+  // Users - Using actual backend endpoints
+  getUsers: (page = 1, limit = 10, search = '') => 
+    api.get(`/users?page=${page}&limit=${limit}&search=${search}`),
+
+  getUserById: (id: number) => 
+    api.get(`/users/${id}`),
+
+  createUser: (data: any) => 
+    api.post('/users/create', data),
+
+  updateUser: (id: number, data: any) => 
+    api.put(`/users/${id}`, data),
+
+  deleteUser: (id: number) => 
+    api.delete(`/users/${id}`),
+
+  toggleUserStatus: (id: number) => 
+    api.put(`/users/${id}/toggle-status`),
+
+  // Sellers - Using actual backend endpoints
+  getSellers: (page = 1, limit = 10, search = '', status = '') => 
+    api.get(`/sellers?page=${page}&limit=${limit}&search=${search}&status=${status}`),
+
+  getAllSellers: () => 
+    api.get('/sellers/all'),
+
+  getSellerById: (id: number) => 
+    api.get(`/sellers/id/${id}`),
+
+  createSeller: (data: any) => 
+    api.post('/sellers/create', data),
+
+  updateSeller: (id: number, data: any) => 
+    api.put(`/sellers/update/${id}`, data),
+
+  deleteSeller: (id: number) => 
+    api.delete(`/sellers/delete/${id}`),
+
+  getPendingSellers: (page = 1, limit = 10) => 
+    api.get(`/admin/sellers/pending?page=${page}&limit=${limit}`),
+
+  getVerifiedSellers: () => 
+    api.get('/admin/sellers/verified'),
+
+  // Seller verification methods (matching backend admin controller - uses POST)
+  approveSeller: (id: number) => 
+    api.post(`/admin/sellers/${id}/verify`),
+
+  rejectSeller: (id: number, reason?: string, deleteAccount?: boolean) => 
+    api.post(`/admin/sellers/${id}/reject`, { reason, deleteAccount }),
+
+  verifySeller: (id: number) => 
+    api.post(`/admin/sellers/${id}/verify`),
+
+  toggleSellerStatus: (id: number) => 
+    api.put(`/sellers/update/${id}`, { isActive: true }), // Toggle status via update endpoint
+
+  // Products - Using actual backend endpoints
+  getProducts: (page = 1, limit = 10, search = '') => 
+    api.get(`/products?page=${page}&limit=${limit}&search=${search}`),
 
   getProductById: (id: number) => 
     api.get(`/products/${id}`),

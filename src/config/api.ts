@@ -187,11 +187,52 @@ export class AuthAPI {
   }
 }
 
+// Cart API methods
+export class CartAPI {
+  constructor(private client: ApiClient) {}
+
+  async getCartItems() {
+    return this.client.get('/cart/items');
+  }
+
+  async addToCart(productId: number, quantity: number = 1) {
+    return this.client.post('/cart/add', { productId, quantity });
+  }
+
+  async updateCartItem(cartId: number, quantity: number) {
+    return this.client.put(`/cart/items/${cartId}`, { quantity });
+  }
+
+  async removeFromCart(cartId: number) {
+    return this.client.delete(`/cart/items/${cartId}`);
+  }
+
+  async clearCart() {
+    return this.client.delete('/cart/clear');
+  }
+
+  async getCartTotal() {
+    return this.client.get('/cart/total');
+  }
+
+  async getCartCount() {
+    try {
+      const response = await this.getCartItems();
+      const cartItems = response.data || [];
+      return cartItems.reduce((total: number, item: any) => total + (item.quantity || 0), 0);
+    } catch (error) {
+      console.error('Failed to get cart count:', error);
+      return 0;
+    }
+  }
+}
+
 // Create singleton instances
 const apiClient = new ApiClient();
 export const userAPI = new UserAPI(apiClient);
 export const productAPI = new ProductAPI(apiClient);
 export const authAPI = new AuthAPI(apiClient);
+export const cartAPI = new CartAPI(apiClient);
 
 // Simple helper functions using only environment variables
 export const getApiUrl = (endpoint: string) => {

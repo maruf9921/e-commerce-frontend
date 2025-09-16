@@ -24,25 +24,34 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // For now, we'll fetch individual endpoints since we don't have a combined stats endpoint
-      const [usersRes, sellersRes, productsRes] = await Promise.allSettled([
-        adminAPI.getUsers(1, 1), // Just get count
-        adminAPI.getSellers(1, 1),
-        adminAPI.getProducts(1, 1),
-      ]);
-
-      // Mock stats for now - you can implement actual stats endpoint in backend
+      
+      // Use the new getDashboardStats method that properly fetches real data
+      const dashboardStats = await adminAPI.getDashboardStats();
+      console.log('📊 Dashboard stats received:', dashboardStats.data);
+      
       setStats({
-        totalUsers: usersRes.status === 'fulfilled' ? 150 : 0,
-        totalSellers: sellersRes.status === 'fulfilled' ? 45 : 0,
-        pendingSellers: 12,
-        totalProducts: productsRes.status === 'fulfilled' ? 320 : 0,
-        totalOrders: 89,
-        recentOrders: []
+        totalUsers: dashboardStats.data.totalUsers || 0,
+        totalSellers: dashboardStats.data.totalSellers || 0,
+        pendingSellers: dashboardStats.data.pendingSellers || 0,
+        totalProducts: dashboardStats.data.totalProducts || 0,
+        totalOrders: 0, // Will be implemented when order endpoints are available
+        recentOrders: dashboardStats.data.recentOrders || []
       });
+      
+      addToast('Dashboard data updated successfully!', 'success');
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       addToast('Failed to load dashboard data', 'error');
+      
+      // Fallback to demo data if API calls fail
+      setStats({
+        totalUsers: 0,
+        totalSellers: 0,
+        pendingSellers: 0,
+        totalProducts: 0,
+        totalOrders: 0,
+        recentOrders: []
+      });
     } finally {
       setLoading(false);
     }

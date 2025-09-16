@@ -27,10 +27,10 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      // Convert frontend role values to backend enum values
+      // Send role values as uppercase since database enum expects uppercase
       const backendFormData = {
         ...formData,
-        role: formData.role === "USER" ? "USER" : formData.role === "SELLER" ? "SELLER" : "ADMIN"
+        role: formData.role // Keep original uppercase values (USER, SELLER, ADMIN)
       };
 
       console.log("Sending data to backend:", backendFormData);

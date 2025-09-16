@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 interface OrderItem {
   id: number;
   quantity: number;
-  price: number;
+  price: string; // Backend returns price as string from PostgreSQL decimal
   product: {
     id: number;
     title: string;
@@ -18,7 +18,7 @@ interface Order {
   id: number;
   orderNumber: string;
   status: string;
-  totalAmount: number;
+  totalAmount: string; // Backend returns totalAmount as string from PostgreSQL decimal
   createdAt: string;
   updatedAt: string;
   user: {
@@ -286,7 +286,7 @@ export default function OrdersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${order.totalAmount.toFixed(2)}
+                        ${parseFloat(order.totalAmount).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(order.createdAt).toLocaleDateString()}
@@ -401,7 +401,7 @@ export default function OrdersPage() {
                         {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                       </span>
                     </p>
-                    <p><span className="font-medium">Total Amount:</span> ${selectedOrder.totalAmount.toFixed(2)}</p>
+                    <p><span className="font-medium">Total Amount:</span> ${parseFloat(selectedOrder.totalAmount).toFixed(2)}</p>
                     <p><span className="font-medium">Order Date:</span> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
                     <p><span className="font-medium">Last Updated:</span> {new Date(selectedOrder.updatedAt).toLocaleString()}</p>
                   </div>
@@ -432,8 +432,8 @@ export default function OrdersPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
-                          <p className="text-sm text-gray-500">${item.price.toFixed(2)} each</p>
+                          <p className="font-medium">${(parseFloat(item.price) * item.quantity).toFixed(2)}</p>
+                          <p className="text-sm text-gray-500">${parseFloat(item.price).toFixed(2)} each</p>
                         </div>
                       </div>
                     ))}

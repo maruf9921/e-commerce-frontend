@@ -2,13 +2,15 @@
 import React, { useEffect, useState } from 'react';
 import { adminAPI } from '@/lib/adminAPI';
 import { useToast } from '@/contexts/ToastContext';
+import ProductForm from '@/components/admin/ProductForm';
+import ConfirmModal from '@/components/admin/ConfirmModal';
 import Image from 'next/image';
 
 interface Product {
   id: number;
   title: string;
   description: string;
-  price: number;
+  price: string; // Backend returns price as string from PostgreSQL decimal
   stock: number;
   category: string;
   images?: string[];
@@ -29,6 +31,10 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const { addToast } = useToast();
@@ -40,7 +46,7 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await adminAPI.getProducts(currentPage, 10, searchTerm);
+      const response = await adminAPI.getAllProducts(currentPage, 10, searchTerm);
       const responseData = response.data as any;
       setProducts(responseData.products || responseData || []);
       setTotalPages(Math.ceil((responseData.total || products.length) / 10));
@@ -64,16 +70,85 @@ export default function ProductsPage() {
   };
 
   const deleteProduct = async (productId: number) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await adminAPI.deleteProduct(productId);
-        addToast('Product deleted successfully', 'success');
-        fetchProducts();
-      } catch (error) {
-        console.error('Failed to delete product:', error);
-        addToast('Failed to delete product', 'error');
-      }
+    try {
+      setActionLoading(true);
+      await adminAPI.deleteProduct(productId);
+      addToast('Product deleted successfully', 'success');
+      setShowDeleteModal(false);
+      setSelectedProduct(null);
+      fetchProducts();
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      addToast('Failed to delete product', 'error');
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleCreateProduct = async (productData: FormData) => {
+    try {
+      setActionLoading(true);
+      await adminAPI.createProduct(productData);
+      addToast('Product created successfully', 'success');
+      setShowProductForm(false);
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Failed to create product:', error);
+      addToast('Failed to create product', 'error');
+      throw error;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateProduct = async (productData: FormData) => {
+    if (!editingProduct) return;
+    
+    try {
+      setActionLoading(true);
+      // Convert FormData to regular object for update
+      const updateData: any = {};
+      for (const [key, value] of productData.entries()) {
+        if (key !== 'images') {
+          updateData[key] = value;
+        }
+      }
+      
+      await adminAPI.updateProduct(editingProduct.id!, updateData);
+      addToast('Product updated successfully', 'success');
+      setShowProductForm(false);
+      setEditingProduct(null);
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Failed to update product:', error);
+      addToast('Failed to update product', 'error');
+      throw error;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleProductFormSubmit = async (productData: FormData) => {
+    if (editingProduct) {
+      await handleUpdateProduct(productData);
+    } else {
+      await handleCreateProduct(productData);
+    }
+  };
+
+  const openCreateForm = () => {
+    setEditingProduct(null);
+    setShowProductForm(true);
+  };
+
+  const openEditForm = (product: Product) => {
+    setEditingProduct(product);
+    setShowProductForm(true);
+  };
+
+  const closeProductForm = () => {
+    setShowProductForm(false);
+    setEditingProduct(null);
   };
 
   const openProductModal = (product: Product) => {
@@ -99,13 +174,31 @@ export default function ProductsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
-        <button
-          onClick={fetchProducts}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Refresh
-        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Products Management</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Manage product inventory, pricing, and availability
+          </p>
+        </div>
+        
+        <div className="flex space-x-3">
+          <button
+            onClick={openCreateForm}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <svg className="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add New Product
+          </button>
+          
+          <button
+            onClick={fetchProducts}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -290,7 +383,7 @@ export default function ProductsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${product.price.toFixed(2)}
+                        ${parseFloat(product.price).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`
@@ -327,15 +420,24 @@ export default function ProductsPage() {
                           View
                         </button>
                         <button
+                          onClick={() => openEditForm(product)}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          Edit
+                        </button>
+                        <button
                           onClick={() => toggleProductStatus(product.id)}
                           className={`${
-                            product.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                            product.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'
                           }`}
                         >
                           {product.isActive ? 'Disable' : 'Enable'}
                         </button>
                         <button
-                          onClick={() => deleteProduct(product.id)}
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setShowDeleteModal(true);
+                          }}
                           className="text-red-600 hover:text-red-900"
                         >
                           Delete
@@ -437,7 +539,7 @@ export default function ProductsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Price</label>
-                  <p className="mt-1 text-sm text-gray-900">${selectedProduct.price.toFixed(2)}</p>
+                  <p className="mt-1 text-sm text-gray-900">${parseFloat(selectedProduct.price).toFixed(2)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Stock</label>
@@ -476,6 +578,31 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedProduct(null);
+        }}
+        onConfirm={() => selectedProduct && deleteProduct(selectedProduct.id)}
+        title="Delete Product"
+        message={`Are you sure you want to delete "${selectedProduct?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        type="danger"
+        loading={actionLoading}
+      />
+
+      {/* Product Form Modal */}
+      {showProductForm && (
+        <ProductForm
+          product={editingProduct}
+          onSubmit={handleProductFormSubmit}
+          onCancel={closeProductForm}
+          loading={actionLoading}
+        />
       )}
     </div>
   );
