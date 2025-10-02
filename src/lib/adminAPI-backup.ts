@@ -87,27 +87,17 @@ export const adminAPI = {
   toggleSellerStatus: async (id: number) => {
     // Since there's no specific toggle endpoint, we'll get the seller first, then update
     const seller = await api.get(`/sellers/id/${id}`);
-    const currentStatus = seller.data.isActive;
+    const currentStatus = (seller.data as { isActive: boolean }).isActive;
     return api.patch(`/sellers/update/${id}`, { isActive: !currentStatus });
   },
 
   // Search sellers
   searchSellers: (substring: string) => 
-    api.get(`/sellers/search/${substring}`),
+    api.get(`/sellers/search/${substring}`)
+};
 
-  getSellerById: (id: number) => 
-    api.get(`/sellers/id/${id}`),
-
-  toggleSellerStatus: async (id: number) => {
-    // Since there's no specific toggle endpoint, we'll get the seller first, then update
-    const seller = await api.get(`/sellers/id/${id}`);
-    const currentStatus = seller.data.isActive;
-    return api.patch(`/sellers/update/${id}`, { isActive: !currentStatus });
-  },
-
-  // Search sellers
-  searchSellers: (substring: string) => 
-    api.get(`/sellers/search/${substring}`),ios.create({
+// Additional API instance for extended functionality
+const extendedApi = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002',
   withCredentials: true, // This ensures httpOnly cookies are sent
   headers: {
@@ -116,7 +106,7 @@ export const adminAPI = {
 });
 
 // Request interceptor to add any additional headers if needed
-api.interceptors.request.use(
+extendedApi.interceptors.request.use(
   (config) => {
     return config;
   },
@@ -126,7 +116,7 @@ api.interceptors.request.use(
 );
 
 // Response interceptor to handle token expiration and errors
-api.interceptors.response.use(
+extendedApi.interceptors.response.use(
   (response) => {
     return response;
   },
@@ -139,8 +129,8 @@ api.interceptors.response.use(
   }
 );
 
-// Admin API functions
-export const adminAPI = {
+// Extended Admin API functions
+export const extendedAdminAPI = {
   // Users - Using actual backend endpoints
   getUsers: (page = 1, limit = 10, search = '') => 
     api.get(`/users?page=${page}&limit=${limit}&search=${search}`),

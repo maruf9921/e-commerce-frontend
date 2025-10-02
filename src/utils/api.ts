@@ -10,10 +10,13 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to log requests
+// Request interceptor to log requests - cookies will be handled automatically
 api.interceptors.request.use(
   (config) => {
     console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    console.log('📋 Request headers:', Object.keys(config.headers || {}));
+    console.log('🍪 Cookies will be included automatically with withCredentials: true');
+    
     return config;
   },
   (error) => {
@@ -30,7 +33,25 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('❌ API Response Error:', error.response?.status, error.response?.data);
-    
+    console.error('❌ Request URL:', error.config?.url);
+    if (error.config?.headers && Object.keys(error.config.headers).length === 0) {
+      console.warn('⚠️ Request headers are empty. This is normal for cookie-based authentication. Cookies are sent automatically.');
+    } else {
+      console.error('❌ Request Headers:', error.config?.headers);
+    }
+    if (error.response?.status === 400) {
+      console.error('🚨 400 Bad Request - likely validation error. Check backend DTOs and request payload.');
+      console.error('- Request Data:', error.config?.data);
+      console.error('- Response Data:', error.response?.data);
+    }
+    // Log detailed 403 error information
+    if (error.response?.status === 403) {
+      console.error('🚨 403 Forbidden Error Details:');
+      console.error('- URL:', error.config?.url);
+      console.error('- Method:', error.config?.method?.toUpperCase());
+      console.error('- Response Data:', error.response?.data);
+      console.error('- Response Headers:', error.response?.headers);
+    }
     // Handle authentication errors
     if (error.response?.status === 401) {
       console.log('🔐 Authentication required - redirecting to login');

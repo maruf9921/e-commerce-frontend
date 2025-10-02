@@ -93,17 +93,23 @@ export default function SellerProducts() {
     e.preventDefault();
     if (!editingProduct) return;
 
+    // Only send allowed fields to backend
+    const allowedFields = ['name', 'description', 'price', 'stock', 'category', 'imageUrl', 'isActive'] as const;
+    const filteredPayload: Record<string, any> = {};
+    allowedFields.forEach((key) => {
+      filteredPayload[key] = (editForm as any)[key];
+    });
+    console.log('📝 Product update payload:', filteredPayload);
+
     try {
       setUpdating(true);
-      await sellerAPI.updateProduct(editingProduct.id, editForm);
-      
+      await sellerAPI.updateProduct(editingProduct.id, filteredPayload);
       // Update the product in the local state
       setProducts(prev => prev.map(p => 
         p.id === editingProduct.id 
-          ? { ...p, ...editForm }
+          ? { ...p, ...filteredPayload }
           : p
       ));
-      
       closeEditModal();
       setError(null);
     } catch (error: any) {

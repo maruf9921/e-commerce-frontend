@@ -27,6 +27,12 @@ interface Product {
     username: string;
     fullName?: string;
   };
+  seller?: {
+    id: number;
+    username: string;
+    phone?: string;
+    isActive: boolean;
+  };
 }
 
 interface ProductsResponse {
@@ -36,39 +42,85 @@ interface ProductsResponse {
   totalPages: number;
 }
 
-// Server-side data fetching
+// Server-side data fetching with enhanced PostgreSQL integration
 async function getProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002';
     
-    // Use different endpoint for SSR to get products with images and seller info
-    const response = await axios.get<ProductsResponse>(`${apiUrl}/products/with-images`, {
-      timeout: 10000,
+    // Use paginated endpoint to get products with images from PostgreSQL
+    const response = await axios.get<ProductsResponse>(`${apiUrl}/products/paginated?limit=50`, {
+      timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
       },
     });
 
-    console.log(`📦 SSR: Fetched ${response.data.products?.length || 0} products`);
-    return response.data.products || [];
-  } catch (error) {
-    console.error('❌ SSR: Failed to fetch products:', error);
+    console.log(`📦 SSR: Successfully fetched ${response.data.products?.length || 0} products with images from PostgreSQL`);
     
-    // Fallback: try the basic products endpoint
+    // Process image URLs to ensure they point to the correct uploads folder
+    const productsWithImages = response.data.products?.map(product => ({
+      ...product,
+      images: product.images?.filter(img => img.isActive).map(img => ({
+        ...img,
+        // Ensure image URL points to the correct uploads endpoint from backend
+        imageUrl: img.imageUrl.startsWith('http') 
+          ? img.imageUrl 
+          : `${apiUrl}/uploads/${img.imageUrl.replace(/^\/+/, '')}`
+      })) || [],
+      user: product.seller || product.user // Handle both seller and user fields
+    })) || [];
+
+    console.log(`📸 SSR: Processed ${productsWithImages.reduce((acc, p) => acc + (p.images?.length || 0), 0)} product images`);
+    return productsWithImages;
+  } catch (error) {
+    console.error('❌ SSR: Failed to fetch paginated products:', error);
+    
+    // Fallback: try the with-images endpoint
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002';
-      const fallbackResponse = await axios.get<Product[]>(`${apiUrl}/products`, {
-        timeout: 5000,
+      const fallbackResponse = await axios.get<Product[]>(`${apiUrl}/products/with-images`, {
+        timeout: 10000,
         headers: {
           'Content-Type': 'application/json',
         },
       });
       
-      console.log(`📦 SSR Fallback: Fetched ${fallbackResponse.data?.length || 0} products`);
-      return fallbackResponse.data || [];
+      console.log(`📦 SSR Fallback: Fetched ${fallbackResponse.data?.length || 0} products with images`);
+      
+      // Structure the fallback data properly with correct image URLs
+      const structuredProducts = fallbackResponse.data?.map(product => ({
+        ...product,
+        images: product.images?.filter(img => img.isActive).map(img => ({
+          ...img,
+          // Ensure image URL points to the correct uploads endpoint from backend
+          imageUrl: img.imageUrl.startsWith('http') 
+            ? img.imageUrl 
+            : `${apiUrl}/uploads/${img.imageUrl.replace(/^\/+/, '')}`
+        })) || [],
+        user: product.seller || product.user
+      })) || [];
+      
+      return structuredProducts;
     } catch (fallbackError) {
-      console.error('❌ SSR Fallback: Failed to fetch products:', fallbackError);
-      return [];
+      console.error('❌ SSR Fallback: Failed to fetch products with images:', fallbackError);
+      
+      // Last resort: basic products endpoint
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002';
+        const basicResponse = await axios.get<Product[]>(`${apiUrl}/products`, {
+          timeout: 5000,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log(`📦 SSR Basic: Fetched ${basicResponse.data?.length || 0} basic products`);
+        return basicResponse.data || [];
+      } catch (basicError) {
+        console.error('❌ SSR Basic: All endpoints failed:', basicError);
+        return [];
+      }
     }
   }
 }

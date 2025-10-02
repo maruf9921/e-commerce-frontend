@@ -157,7 +157,12 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
   const getImageUrl = (product: Product) => {
     if (product.images && product.images.length > 0) {
       const image = product.images.find(img => img.isActive) || product.images[0];
-      return `${process.env.NEXT_PUBLIC_API_URL}${image.imageUrl}`;
+      // Don't add API URL again if it's already a complete URL (SSR processed)
+      if (image.imageUrl.startsWith('http')) {
+        return image.imageUrl;
+      }
+      // For relative URLs, ensure proper uploads path
+      return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${image.imageUrl.replace(/^\/+/, '')}`;
     }
     return '/images/placeholder.jpg';
   };

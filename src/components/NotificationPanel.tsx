@@ -26,6 +26,21 @@ const NotificationPanel: React.FC = () => {
   } = useNotifications();
 
   const [isOpen, setIsOpen] = useState(false);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close panel
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -75,22 +90,29 @@ const NotificationPanel: React.FC = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative inline-block" ref={panelRef}>
       {/* Notification Bell */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+        className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
         <Bell className="h-5 w-5" />
         
         {/* Connection Status Indicator */}
-        <div className={`absolute -top-1 -left-1 w-3 h-3 rounded-full ${
-          isConnected ? 'bg-green-400' : 'bg-red-400'
-        }`} />
+        <div 
+          className={`absolute -top-1 -left-1 w-3 h-3 rounded-full border-2 border-white ${
+            isConnected ? 'bg-green-400' : 'bg-red-400'
+          }`}
+          title={isConnected ? 'Connected' : 'Disconnected'}
+        />
         
         {/* Unread Count Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
+          <span 
+            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium animate-pulse"
+            title={`${unreadCount} unread notifications`}
+          >
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -99,7 +121,7 @@ const NotificationPanel: React.FC = () => {
       {/* Notification Panel */}
       {isOpen && (
         <>
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] max-h-96 overflow-hidden">
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">

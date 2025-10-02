@@ -5,6 +5,7 @@ import { useSellerGuard } from '@/hooks/useAuthGuard';
 import { useAuth } from '@/contexts/AuthContextNew';
 import { sellerDashboardAPI } from '@/utils/api';
 import { Package, DollarSign, ShoppingCart, Users } from 'lucide-react';
+import EnhancedSellerNotificationPanel from '@/components/EnhancedSellerNotificationPanel';
 
 interface DashboardStats {
   seller: {
@@ -52,15 +53,22 @@ export default function SellerDashboard() {
 
   // Fetch dashboard statistics
   const fetchDashboardStats = async () => {
-    if (!user || !user.isVerified) return;
+    if (!user || !user.isVerified) {
+      console.log('❌ Cannot fetch dashboard stats: User not verified');
+      return;
+    }
     
     try {
       setStatsLoading(true);
       const response = await sellerDashboardAPI.getDashboardOverview();
       setDashboardStats(response.data as DashboardStats);
-      console.log('📊 Dashboard stats loaded:', response.data);
-    } catch (error) {
-      console.error('❌ Error fetching dashboard stats:', error);
+      console.log('📊 Dashboard stats loaded successfully');
+    } catch (error: any) {
+      console.error('❌ Error fetching dashboard stats:', error.response?.status || error.message);
+      
+      if (error.response?.status === 403) {
+        console.error('🚨 403 Forbidden - Check user permissions');
+      }
     } finally {
       setStatsLoading(false);
     }
@@ -69,9 +77,20 @@ export default function SellerDashboard() {
   // Load dashboard data when component mounts and user is verified
   useEffect(() => {
     if (user && user.isVerified) {
+      console.log('🔍 Seller Dashboard - Current User Info:', {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        isVerified: user.isVerified
+      });
       fetchDashboardStats();
     }
   }, [user]);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
 
   if (loading) {
     return (
@@ -92,15 +111,6 @@ export default function SellerDashboard() {
     );
   }
 
-  if (!user) {
-    return null; // Will redirect to login
-  }
-
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
-  };
-
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}
@@ -109,20 +119,26 @@ export default function SellerDashboard() {
           <div className="flex justify-between items-center py-4">
             <div>
               <h1 className="text-2xl font-bold text-white">Seller Dashboard</h1>
-              <p className="text-gray-400">Welcome back, {user.fullName || user.username}!</p>
+              <p className="text-gray-400">Welcome back, {user?.fullName || user?.username}!</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Enhanced Notification Bell */}
+              <EnhancedSellerNotificationPanel />
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Verification Status Alert */}
-      {!user.isVerified && (
+      {user && !user.isVerified && (
         <div className="bg-yellow-600 border-l-4 border-yellow-400 p-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex">
@@ -133,8 +149,7 @@ export default function SellerDashboard() {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-yellow-200">
-                  <strong>Account Pending Verification:</strong> Your seller account is awaiting admin approval. 
-                  You will be able to list products once your account is verified.
+                  Your seller account is being reviewed by our admin team. You'll receive an email notification once your account is verified.
                 </p>
               </div>
             </div>
@@ -149,30 +164,26 @@ export default function SellerDashboard() {
           <h2 className="text-xl font-semibold text-white mb-4">Seller Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-300">
             <div>
-              <p><strong>Username:</strong> {user.username}</p>
-              <p><strong>Email:</strong> {user.email}</p>
-              <p><strong>Full Name:</strong> {user.fullName || 'Not provided'}</p>
+              <p><strong>Username:</strong> {user?.username}</p>
+              <p><strong>Email:</strong> {user?.email}</p>
+              <p><strong>Full Name:</strong> {user?.fullName || 'Not provided'}</p>
             </div>
             <div>
-              <p><strong>Account Status:</strong> 
-                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                  user.isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                }`}>
-                  {user.isActive ? 'Active' : 'Inactive'}
+              <p><strong>Account Status:</strong>
+                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${user?.isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                  {user?.isActive ? 'Active' : 'Inactive'}
                 </span>
               </p>
               <p><strong>Verification Status:</strong>
-                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                  user.isVerified ? 'bg-green-600 text-white' : 'bg-yellow-600 text-white'
-                }`}>
-                  {user.isVerified ? 'Verified' : 'Pending'}
+                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${user?.isVerified ? 'bg-green-600 text-white' : 'bg-yellow-600 text-white'}`}>
+                  {user?.isVerified ? 'Verified' : 'Pending'}
                 </span>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Dashboard Stats */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <div className="flex items-center justify-between">
@@ -221,67 +232,55 @@ export default function SellerDashboard() {
         </div>
 
         {/* Dashboard Features */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* My Products */}
           <div className="bg-gray-800 rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-semibold text-white mb-3">My Products</h3>
             <p className="text-gray-400 mb-4">Manage your product listings</p>
             <button
               onClick={() => router.push('/seller/products')}
-              disabled={!user.isVerified}
+              disabled={!user?.isVerified}
               className={`w-full px-4 py-2 rounded-md transition-colors ${
-                user.isVerified
+                user?.isVerified
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {user.isVerified ? 'Manage Products' : 'Verification Required'}
+              {user?.isVerified ? 'Manage Products' : 'Verification Required'}
             </button>
           </div>
 
           {/* Add Product */}
           <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-white mb-3">Add New Product</h3>
-            <p className="text-gray-400 mb-4">List a new product for sale</p>
+            <h3 className="text-lg font-semibold text-white mb-3">Add Product</h3>
+            <p className="text-gray-400 mb-4">List new products for sale</p>
             <button
               onClick={() => router.push('/seller/products/new')}
-              disabled={!user.isVerified}
+              disabled={!user?.isVerified}
               className={`w-full px-4 py-2 rounded-md transition-colors ${
-                user.isVerified
+                user?.isVerified
                   ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {user.isVerified ? 'Add Product' : 'Verification Required'}
+              {user?.isVerified ? 'Add Product' : 'Verification Required'}
             </button>
           </div>
 
-          {/* Sales & Orders */}
+          {/* Orders */}
           <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-white mb-3">Sales & Orders</h3>
-            <p className="text-gray-400 mb-4">Track your sales and orders</p>
+            <h3 className="text-lg font-semibold text-white mb-3">Orders</h3>
+            <p className="text-gray-400 mb-4">View and manage your orders</p>
             <button
               onClick={() => router.push('/seller/orders')}
-              disabled={!user.isVerified}
+              disabled={!user?.isVerified}
               className={`w-full px-4 py-2 rounded-md transition-colors ${
-                user.isVerified
+                user?.isVerified
                   ? 'bg-purple-600 text-white hover:bg-purple-700'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {user.isVerified ? 'View Sales' : 'Verification Required'}
-            </button>
-          </div>
-
-          {/* Profile Settings */}
-          <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-white mb-3">Profile Settings</h3>
-            <p className="text-gray-400 mb-4">Update your seller information</p>
-            <button
-              onClick={() => router.push('/seller/profile')}
-              className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              Edit Profile
+              {user?.isVerified ? 'View Orders' : 'Verification Required'}
             </button>
           </div>
 
@@ -291,14 +290,14 @@ export default function SellerDashboard() {
             <p className="text-gray-400 mb-4">Communicate with your customers</p>
             <button
               onClick={() => router.push('/seller/mail')}
-              disabled={!user.isVerified}
+              disabled={!user?.isVerified}
               className={`w-full px-4 py-2 rounded-md transition-colors ${
-                user.isVerified
+                user?.isVerified
                   ? 'bg-pink-600 text-white hover:bg-pink-700'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {user.isVerified ? 'Send Messages' : 'Verification Required'}
+              {user?.isVerified ? 'Send Messages' : 'Verification Required'}
             </button>
           </div>
 
@@ -308,14 +307,14 @@ export default function SellerDashboard() {
             <p className="text-gray-400 mb-4">View your sales analytics</p>
             <button
               onClick={() => router.push('/seller/analytics')}
-              disabled={!user.isVerified}
+              disabled={!user?.isVerified}
               className={`w-full px-4 py-2 rounded-md transition-colors ${
-                user.isVerified
+                user?.isVerified
                   ? 'bg-orange-600 text-white hover:bg-orange-700'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
-              {user.isVerified ? 'View Analytics' : 'Verification Required'}
+              {user?.isVerified ? 'View Analytics' : 'Verification Required'}
             </button>
           </div>
 
@@ -333,9 +332,9 @@ export default function SellerDashboard() {
         </div>
 
         {/* Quick Stats */}
-        <div className="mt-8 bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="bg-gray-800 rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-semibold text-white mb-4">Seller Overview</h2>
-          {user.isVerified ? (
+          {user?.isVerified ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-400">

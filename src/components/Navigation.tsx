@@ -4,6 +4,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, ShoppingCart, Heart, User, Package, Home, LogOut, ChevronDown, Search } from 'lucide-react';
 import { cartAPI } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContextNew';
+import NotificationPanel from './NotificationPanel';
+import NotificationIndicator from './NotificationIndicator';
 
 interface User {
   id: number;
@@ -148,12 +150,34 @@ export default function Navigation() {
               )}
             </button>
 
-            <button
-              onClick={() => router.push('/wishlist')}
-              className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              <Heart className="h-6 w-6" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => router.push('/wishlist')}
+                className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                <Heart className="h-6 w-6" />
+              </button>
+
+              {/* Notifications */}
+              {user && (
+                <div className="relative">
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => {
+                      const panel = document.getElementById('notification-panel');
+                      if (panel) {
+                        panel.classList.toggle('hidden');
+                      }
+                    }}
+                  >
+                    <NotificationIndicator />
+                  </div>
+                  <div id="notification-panel" className="hidden absolute right-0 mt-2">
+                    <NotificationPanel />
+                  </div>
+                </div>
+              )}
+            </div>
 
             {user ? (
               <div className="relative">

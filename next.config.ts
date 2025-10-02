@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Fix workspace root detection
+  outputFileTracingRoot: '/home/dip-roy/e-commerce_project/e-commerce-frontend',
+  
   // Environment variables validation
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
@@ -59,6 +62,21 @@ const nextConfig: NextConfig = {
   // Performance optimizations
   experimental: {
     optimizeCss: true,
+  },
+
+  // Webpack configuration to fix module resolution
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Fix for client-side module resolution issues
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        buffer: require.resolve('buffer'),
+        util: require.resolve('util'),
+        url: require.resolve('url'),
+        assert: require.resolve('assert'),
+      };
+    }
+    return config;
   },
 };
 
