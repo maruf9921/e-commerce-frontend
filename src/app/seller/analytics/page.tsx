@@ -47,6 +47,17 @@ export default function SellerAnalytics() {
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
 
+  // Safe number formatter
+  const formatCurrency = (value: any): string => {
+    const numValue = Number(value || 0);
+    return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
+  };
+
+  const formatNumber = (value: any, decimals: number = 1): string => {
+    const numValue = Number(value || 0);
+    return isNaN(numValue) ? '0' : numValue.toFixed(decimals);
+  };
+
   useEffect(() => {
     if (user && isAuthorized) {
       fetchAnalytics();
@@ -171,7 +182,7 @@ export default function SellerAnalytics() {
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-400">Total Revenue</p>
-                      <p className="text-2xl font-bold text-white">${analytics.totalRevenue.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-white">${formatCurrency(analytics?.totalRevenue)}</p>
                     </div>
                   </div>
                 </div>
@@ -213,7 +224,7 @@ export default function SellerAnalytics() {
                     </div>
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-400">Avg Order Value</p>
-                      <p className="text-2xl font-bold text-white">${analytics.averageOrderValue.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-white">${formatCurrency(analytics?.averageOrderValue)}</p>
                     </div>
                   </div>
                 </div>
@@ -236,7 +247,7 @@ export default function SellerAnalytics() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400">Conversion Rate</span>
-                      <span className="text-blue-400 font-medium">{analytics.conversionRate.toFixed(1)}%</span>
+                      <span className="text-blue-400 font-medium">{formatNumber(analytics?.conversionRate, 1)}%</span>
                     </div>
                   </div>
                 </div>
@@ -255,11 +266,11 @@ export default function SellerAnalytics() {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-400">Average Rating</span>
-                        <span className="text-yellow-400 font-medium">{productAnalytics.averageRating.toFixed(1)} ⭐</span>
+                        <span className="text-yellow-400 font-medium">{formatNumber(productAnalytics?.averageRating, 1)} ⭐</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-400">Performance Score</span>
-                        <span className="text-purple-400 font-medium">{productAnalytics.performanceScore.toFixed(1)}/100</span>
+                        <span className="text-purple-400 font-medium">{formatNumber(productAnalytics?.performanceScore, 1)}/100</span>
                       </div>
                     </div>
                   </div>

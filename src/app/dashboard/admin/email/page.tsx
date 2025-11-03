@@ -143,7 +143,11 @@ export default function EmailPage() {
     try {
       setLoading(true);
       // TODO: Call POST /api/admin/emails/welcome from NestJS backend
-      await adminAPI.sendWelcomeEmail(email);
+      await adminAPI.sendEmail({
+        subject: 'Welcome to Our Platform!',
+        message: 'Welcome to our e-commerce platform! We\'re excited to have you join our community.',
+        recipients: [email]
+      });
       addToast('Welcome email sent successfully!', 'success');
     } catch (error: any) {
       console.error('Failed to send welcome email:', error);

@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create axios instance with default configuration
 const api = axios.create({
   baseURL: 'http://localhost:4002',
-  timeout: 10000,
+  timeout: 30000, // Increased to 30 seconds for order creation
   withCredentials: true, // Include cookies for authentication
   headers: {
     'Content-Type': 'application/json',

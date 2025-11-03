@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSellerGuard } from '@/hooks/useAuthGuard';
 import { useAuth } from '@/contexts/AuthContextNew';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { sellerDashboardAPI } from '@/utils/api';
 import { Package, DollarSign, ShoppingCart, Users } from 'lucide-react';
-import EnhancedSellerNotificationPanel from '@/components/EnhancedSellerNotificationPanel';
+import SellerNotificationBell from '@/components/SellerNotificationBell';
+import NotificationPopupManager from '@/components/NotificationPopupManager';
 
 interface DashboardStats {
   seller: {
@@ -47,9 +49,33 @@ interface DashboardStats {
 export default function SellerDashboard() {
   const { user, loading, isAuthorized } = useSellerGuard();
   const { logout } = useAuth();
+  const { notifications, unreadCount, isConnected } = useNotifications();
   const router = useRouter();
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  // Safe currency formatter
+  const formatCurrency = (value: any): string => {
+    const numValue = Number(value || 0);
+    return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
+  };
+
+  // Debug notification system
+  useEffect(() => {
+    console.log('🔔 Seller Dashboard - Notification Debug:', {
+      userId: user?.id,
+      userRole: user?.role,
+      notificationCount: notifications.length,
+      unreadCount,
+      isConnected,
+      recentNotifications: notifications.slice(0, 3).map(n => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        timestamp: n.timestamp
+      }))
+    });
+  }, [user, notifications, unreadCount, isConnected]);
 
   // Fetch dashboard statistics
   const fetchDashboardStats = async () => {
@@ -122,8 +148,10 @@ export default function SellerDashboard() {
               <p className="text-gray-400">Welcome back, {user?.fullName || user?.username}!</p>
             </div>
             <div className="flex items-center gap-4">
-              {/* Enhanced Notification Bell */}
-              <EnhancedSellerNotificationPanel />
+              {/* Enhanced Seller Notification Bell with Popup Messages */}
+              <SellerNotificationBell 
+                className="relative"
+              />
 
               {/* Logout Button */}
               <button
@@ -136,6 +164,47 @@ export default function SellerDashboard() {
           </div>
         </div>
       </header>
+
+      {/* Debug Panel - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-900 border-b border-yellow-600 p-4">
+          <div className="max-w-7xl mx-auto">
+            <h3 className="text-yellow-100 font-bold mb-2">🔧 Notification Debug Panel</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+              <div className="bg-yellow-800 p-2 rounded">
+                <strong className="text-yellow-100">User ID:</strong>
+                <p className="text-yellow-200">{user?.id || 'Not set'}</p>
+              </div>
+              <div className="bg-yellow-800 p-2 rounded">
+                <strong className="text-yellow-100">Role:</strong>
+                <p className="text-yellow-200">{user?.role || 'Not set'}</p>
+              </div>
+              <div className="bg-yellow-800 p-2 rounded">
+                <strong className="text-yellow-100">Connection:</strong>
+                <p className={`${isConnected ? 'text-green-300' : 'text-red-300'}`}>
+                  {isConnected ? '✅ Connected' : '❌ Disconnected'}
+                </p>
+              </div>
+              <div className="bg-yellow-800 p-2 rounded">
+                <strong className="text-yellow-100">Notifications:</strong>
+                <p className="text-yellow-200">{notifications.length} total, {unreadCount} unread</p>
+              </div>
+            </div>
+            {notifications.length > 0 && (
+              <div className="mt-2">
+                <strong className="text-yellow-100">Recent Notifications:</strong>
+                <div className="mt-1 space-y-1">
+                  {notifications.slice(0, 3).map(n => (
+                    <div key={n.id} className="text-xs text-yellow-200 bg-yellow-800 p-1 rounded">
+                      [{n.type}] {n.title} - {new Date(n.timestamp).toLocaleTimeString()}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Verification Status Alert */}
       {user && !user.isVerified && (
@@ -201,7 +270,7 @@ export default function SellerDashboard() {
               <div>
                 <p className="text-gray-400 text-sm">Total Revenue</p>
                 <p className="text-2xl font-bold text-white">
-                  ${statsLoading ? '...' : (dashboardStats?.analytics?.orders?.totalRevenue || 0).toFixed(2)}
+                  ${statsLoading ? '...' : formatCurrency(dashboardStats?.analytics?.orders?.totalRevenue)}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-green-500" />
@@ -350,7 +419,7 @@ export default function SellerDashboard() {
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-purple-400">
-                  ${statsLoading ? '...' : (dashboardStats?.analytics?.orders?.totalRevenue || 0).toFixed(2)}
+                  ${statsLoading ? '...' : formatCurrency(dashboardStats?.analytics?.orders?.totalRevenue)}
                 </div>
                 <div className="text-gray-400">Total Revenue</div>
               </div>
@@ -377,6 +446,15 @@ export default function SellerDashboard() {
           )}
         </div>
       </main>
+
+      {/* Notification Popup Manager for React Popup Messages */}
+      <NotificationPopupManager
+        enabled={true}
+        maxPopups={3}
+        defaultDuration={6000}
+        position="top-right"
+        playSound={true}
+      />
     </div>
   );
 }

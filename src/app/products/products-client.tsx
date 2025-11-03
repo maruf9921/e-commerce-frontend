@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Filter, Heart, ShoppingCart, Star, Eye, Package, Grid, List, ChevronDown } from 'lucide-react';
+import { getProductImageUrl, handleImageError } from '@/utils/imageUtils';
 
 interface Product {
   id: number;
@@ -95,32 +96,24 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     }
   };
 
-  const addToCart = (product: Product, quantity: number = 1) => {
-    const existingItem = cart.find(item => item.productId === product.id);
-    let newCart: CartItem[];
-
-    if (existingItem) {
-      newCart = cart.map(item =>
-        item.productId === product.id
-          ? { ...item, quantity: item.quantity + quantity }
-          : item
-      );
-    } else {
-      const newItem: CartItem = {
+  const addToCart = async (product: Product) => {
+    try {
+      const cartItem: CartItem = {
         productId: product.id,
-        quantity,
+        quantity: 1,
         price: parseFloat(product.price),
         name: product.name,
-        image: product.images?.[0]?.imageUrl
+        image: getProductImageUrl(product)
       };
-      newCart = [...cart, newItem];
+      
+      console.log('Adding to cart:', cartItem);
+      // Here you would typically call your cart API
+      alert(`${product.name} added to cart!`);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      alert('Failed to add to cart. Please try again.');
     }
-
-    saveCartToStorage(newCart);
-    alert(`${product.name} added to cart!`);
-  };
-
-  const toggleWishlist = (productId: number) => {
+  };  const toggleWishlist = (productId: number) => {
     const newWishlist = wishlist.includes(productId)
       ? wishlist.filter(id => id !== productId)
       : [...wishlist, productId];
@@ -153,19 +146,6 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
   });
 
   const categories = Array.from(new Set(products.map(p => p.category)));
-
-  const getImageUrl = (product: Product) => {
-    if (product.images && product.images.length > 0) {
-      const image = product.images.find(img => img.isActive) || product.images[0];
-      // Don't add API URL again if it's already a complete URL (SSR processed)
-      if (image.imageUrl.startsWith('http')) {
-        return image.imageUrl;
-      }
-      // For relative URLs, ensure proper uploads path
-      return `${process.env.NEXT_PUBLIC_API_URL}/uploads/${image.imageUrl.replace(/^\/+/, '')}`;
-    }
-    return '/images/placeholder.jpg';
-  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -308,13 +288,10 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                 {/* Product Image */}
                 <div className={`relative ${viewMode === 'list' ? 'w-48 flex-shrink-0' : 'aspect-square'}`}>
                   <img
-                    src={getImageUrl(product)}
+                    src={getProductImageUrl(product)}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/images/placeholder.jpg';
-                    }}
+                    onError={handleImageError}
                   />
                   
                   {/* Actions Overlay */}

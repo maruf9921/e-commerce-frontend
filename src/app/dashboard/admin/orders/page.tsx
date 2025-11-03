@@ -265,31 +265,31 @@ export default function OrdersPage() {
                             #{order.orderNumber || order.id}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                            {(order.items?.length || 0)} item{(order.items?.length || 0) !== 1 ? 's' : ''}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {order.user.username}
+                            {order.user?.username || 'Unknown User'}
                           </div>
-                          <div className="text-sm text-gray-500">{order.user.email}</div>
+                          <div className="text-sm text-gray-500">{order.user?.email || 'No email'}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`
                           inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                          ${getStatusColor(order.status)}
+                          ${getStatusColor(order.status || 'pending')}
                         `}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          {(order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${parseFloat(order.totalAmount).toFixed(2)}
+                        ${parseFloat(order.totalAmount || '0').toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Unknown date'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                         <button
@@ -299,7 +299,7 @@ export default function OrdersPage() {
                           View
                         </button>
                         <select
-                          value={order.status}
+                          value={order.status || 'pending'}
                           onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                           className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
@@ -387,8 +387,8 @@ export default function OrdersPage() {
                 <div>
                   <h4 className="text-md font-medium text-gray-900 mb-2">Customer Information</h4>
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <p><span className="font-medium">Name:</span> {selectedOrder.user.username}</p>
-                    <p><span className="font-medium">Email:</span> {selectedOrder.user.email}</p>
+                    <p><span className="font-medium">Name:</span> {selectedOrder.user?.username || 'Unknown User'}</p>
+                    <p><span className="font-medium">Email:</span> {selectedOrder.user?.email || 'No email'}</p>
                   </div>
                 </div>
 
@@ -397,13 +397,13 @@ export default function OrdersPage() {
                   <h4 className="text-md font-medium text-gray-900 mb-2">Order Information</h4>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p><span className="font-medium">Status:</span> 
-                      <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedOrder.status)}`}>
-                        {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                      <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedOrder.status || 'pending')}`}>
+                        {(selectedOrder.status || 'pending').charAt(0).toUpperCase() + (selectedOrder.status || 'pending').slice(1)}
                       </span>
                     </p>
-                    <p><span className="font-medium">Total Amount:</span> ${parseFloat(selectedOrder.totalAmount).toFixed(2)}</p>
-                    <p><span className="font-medium">Order Date:</span> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
-                    <p><span className="font-medium">Last Updated:</span> {new Date(selectedOrder.updatedAt).toLocaleString()}</p>
+                    <p><span className="font-medium">Total Amount:</span> ${parseFloat(selectedOrder.totalAmount || '0').toFixed(2)}</p>
+                    <p><span className="font-medium">Order Date:</span> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : 'Unknown date'}</p>
+                    <p><span className="font-medium">Last Updated:</span> {selectedOrder.updatedAt ? new Date(selectedOrder.updatedAt).toLocaleString() : 'Unknown date'}</p>
                   </div>
                 </div>
 
@@ -423,17 +423,17 @@ export default function OrdersPage() {
                 <div>
                   <h4 className="text-md font-medium text-gray-900 mb-2">Order Items</h4>
                   <div className="space-y-2">
-                    {selectedOrder.items.map((item) => (
+                    {(selectedOrder.items || []).map((item) => (
                       <div key={item.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                         <div className="flex items-center">
                           <div className="ml-4">
-                            <p className="font-medium">{item.product.title}</p>
-                            <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                            <p className="font-medium">{item.product?.title || 'Unknown Product'}</p>
+                            <p className="text-sm text-gray-500">Quantity: {item.quantity || 0}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">${(parseFloat(item.price) * item.quantity).toFixed(2)}</p>
-                          <p className="text-sm text-gray-500">${parseFloat(item.price).toFixed(2)} each</p>
+                          <p className="font-medium">${(parseFloat(item.price || '0') * (item.quantity || 0)).toFixed(2)}</p>
+                          <p className="text-sm text-gray-500">${parseFloat(item.price || '0').toFixed(2)} each</p>
                         </div>
                       </div>
                     ))}

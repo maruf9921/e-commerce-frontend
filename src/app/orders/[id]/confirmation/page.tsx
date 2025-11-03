@@ -24,7 +24,7 @@ interface Order {
     product: {
       id: number;
       name: string;
-      images: string[];
+      images: (string | { imageUrl: string; altText?: string; isActive: boolean })[];
     };
     seller: {
       id: number;
@@ -219,9 +219,22 @@ export default function OrderConfirmationPage() {
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                       {item.product.images && item.product.images.length > 0 ? (
                         <img
-                          src={`http://localhost:4002/uploads/images/${item.product.images[0]}`}
+                          src={
+                            typeof item.product.images[0] === 'string' 
+                              ? `http://localhost:4002/uploads/images/${item.product.images[0]}`
+                              : item.product.images[0].imageUrl.startsWith('http') 
+                                ? item.product.images[0].imageUrl
+                                : `http://localhost:4002/uploads/images/${item.product.images[0].imageUrl}`
+                          }
                           alt={item.product.name}
                           className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            console.log('Image failed to load:', e.currentTarget.src);
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement?.appendChild(
+                              document.createElement('div')
+                            );
+                          }}
                         />
                       ) : (
                         <Package className="h-6 w-6 text-gray-400" />

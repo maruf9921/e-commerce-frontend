@@ -50,11 +50,9 @@ export default function RootLayout({
         <AuthProvider>
           <NotificationWrapper>
             <ToastProvider>
-              <ClientWrapper>
-                <Navigation />
-                {children}
-                <Footer />
-              </ClientWrapper>
+              <Navigation />
+              {children}
+              <Footer />
             </ToastProvider>
           </NotificationWrapper>
         </AuthProvider>

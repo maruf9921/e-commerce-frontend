@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Only redirect if we're not already on login page and window is available
           if (typeof window !== 'undefined' && 
               !window.location.pathname.includes('/login') && 
-              !window.location.pathname.includes('/signup')) {
+              !window.location.pathname.includes('/Singup')) {
             router.push('/login?expired=true');
           }
         }

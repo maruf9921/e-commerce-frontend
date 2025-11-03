@@ -92,8 +92,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     // Initialize Pusher with provided credentials and cluster config
     const pusherConfig = {
-      key: "c1e0d449c6ac15092b9c",
-      cluster: "ap2",
+      key: process.env.NEXT_PUBLIC_PUSHER_KEY || "15b1c61ffa0f4d470c2b",
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || "ap2",
       apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002'
     };
 
@@ -635,6 +635,18 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     // Listen for backend notification service events (notification-{type})
     if (userChannel) {
+      // PRIMARY EVENT: Listen for the main 'new-notification' event from backend
+      userChannel.bind('new-notification', (data: any) => {
+        console.log(`📨 Received new-notification on user-${userId} channel:`, {
+          userId,
+          userRole,
+          data,
+          channel: `user-${userId}`
+        });
+        handleNotificationInner('new-notification', data);
+      });
+      console.log(`🔔 Bound new-notification handler to user channel`);
+
       // Set up all user channel event listeners
       const userEvents = {
         'notification-order': (data: any) => {
@@ -748,7 +760,35 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       });
     }
 
-    // Generic notification listeners for backend events
+    // Listen for new-notification event on broadcast channel
+    if (broadcastChannel) {
+      broadcastChannel.bind('new-notification', (data: any) => {
+        console.log(`📨 Received new-notification on broadcast channel:`, {
+          userId,
+          userRole,
+          data,
+          channel: 'broadcast'
+        });
+        handleNotificationInner('new-notification', data);
+      });
+      console.log(`🔔 Bound new-notification handler to broadcast channel`);
+    }
+
+    // Listen for new-notification event on role channel
+    if (roleChannel && userRole) {
+      roleChannel.bind('new-notification', (data: any) => {
+        console.log(`📨 Received new-notification on role-${userRole} channel:`, {
+          userId,
+          userRole,
+          data,
+          channel: `role-${userRole.toLowerCase()}`
+        });
+        handleNotificationInner('new-notification', data);
+      });
+      console.log(`🔔 Bound new-notification handler to role channel`);
+    }
+
+    // Generic notification listeners for backend events (catch-all)
     userChannel?.bind_global((eventName: string, data: any) => {
       console.log(`📨 Received notification on user channel: ${eventName}`, data);
       if (eventName.startsWith('notification-')) {

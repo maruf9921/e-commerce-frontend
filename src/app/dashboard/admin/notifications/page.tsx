@@ -1,7 +1,9 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { adminAPI } from '@/lib/adminAPI';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContextNew';
 
 interface Notification {
   id: number;
@@ -18,6 +20,8 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,6 +31,35 @@ export default function NotificationsPage() {
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { addToast } = useToast();
+
+  // Check if user has ADMIN role
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role !== 'ADMIN') {
+        addToast('Access denied. Admin role required.', 'error');
+        router.push(user.role === 'SELLER' ? '/seller/dashboard' : '/');
+      }
+    } else if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not admin
+  if (!user || user.role !== 'ADMIN') {
+    return null;
+  }
 
   // Create notification state
   const [newNotification, setNewNotification] = useState({

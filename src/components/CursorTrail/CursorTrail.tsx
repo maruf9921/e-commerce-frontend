@@ -10,6 +10,7 @@ export default function CursorTrail() {
     if (!container) return;
 
     function createDot(x: number, y: number) {
+      if (!container) return;
       const dot = document.createElement("div");
       dot.className =
         "w-2 h-2 bg-purple-500 rounded-full absolute pointer-events-none transition-opacity duration-500";
@@ -23,7 +24,9 @@ export default function CursorTrail() {
       });
 
       setTimeout(() => {
-        container.removeChild(dot);
+        if (container) {
+          container.removeChild(dot);
+        }
       }, 500);
     }
 

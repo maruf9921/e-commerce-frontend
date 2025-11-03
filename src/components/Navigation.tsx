@@ -4,8 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, ShoppingCart, Heart, User, Package, Home, LogOut, ChevronDown, Search } from 'lucide-react';
 import { cartAPI } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContextNew';
-import NotificationPanel from './NotificationPanel';
-import NotificationIndicator from './NotificationIndicator';
+import NotificationBell from './NotificationBell';
 
 interface User {
   id: number;
@@ -158,25 +157,12 @@ export default function Navigation() {
                 <Heart className="h-6 w-6" />
               </button>
 
-              {/* Notifications */}
-              {user && (
-                <div className="relative">
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => {
-                      const panel = document.getElementById('notification-panel');
-                      if (panel) {
-                        panel.classList.toggle('hidden');
-                      }
-                    }}
-                  >
-                    <NotificationIndicator />
-                  </div>
-                  <div id="notification-panel" className="hidden absolute right-0 mt-2">
-                    <NotificationPanel />
-                  </div>
-                </div>
-              )}
+            {/* Notifications - Enhanced for different user roles */}
+            {user && (
+              <div className="relative z-40">
+                <NotificationBell />
+              </div>
+            )}
             </div>
 
             {user ? (
@@ -241,7 +227,7 @@ export default function Navigation() {
                   Sign in
                 </button>
                 <button
-                  onClick={() => router.push('/signup')}
+                  onClick={() => router.push('/Singup')}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                 >
                   Sign up
@@ -300,7 +286,7 @@ export default function Navigation() {
                   Sign in
                 </button>
                 <button
-                  onClick={() => router.push('/signup')}
+                  onClick={() => router.push('/Singup')}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   Sign up

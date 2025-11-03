@@ -47,13 +47,20 @@ async function getProducts(): Promise<Product[]> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002';
     
+    console.log(`📦 SSR: Fetching products from ${apiUrl}/products/paginated`);
+    
     // Use paginated endpoint to get products with images from PostgreSQL
     const response = await axios.get<ProductsResponse>(`${apiUrl}/products/paginated?limit=50`, {
       timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'NextJS-SSR'
       },
+      // Disable SSL verification for local development
+      ...(apiUrl.includes('localhost') && {
+        httpsAgent: false
+      })
     });
 
     console.log(`📦 SSR: Successfully fetched ${response.data.products?.length || 0} products with images from PostgreSQL`);
@@ -63,10 +70,8 @@ async function getProducts(): Promise<Product[]> {
       ...product,
       images: product.images?.filter(img => img.isActive).map(img => ({
         ...img,
-        // Ensure image URL points to the correct uploads endpoint from backend
-        imageUrl: img.imageUrl.startsWith('http') 
-          ? img.imageUrl 
-          : `${apiUrl}/uploads/${img.imageUrl.replace(/^\/+/, '')}`
+        // Keep original imageUrl as it's already processed by backend
+        imageUrl: img.imageUrl
       })) || [],
       user: product.seller || product.user // Handle both seller and user fields
     })) || [];
@@ -93,10 +98,8 @@ async function getProducts(): Promise<Product[]> {
         ...product,
         images: product.images?.filter(img => img.isActive).map(img => ({
           ...img,
-          // Ensure image URL points to the correct uploads endpoint from backend
-          imageUrl: img.imageUrl.startsWith('http') 
-            ? img.imageUrl 
-            : `${apiUrl}/uploads/${img.imageUrl.replace(/^\/+/, '')}`
+          // Keep original imageUrl as it's already processed by backend
+          imageUrl: img.imageUrl
         })) || [],
         user: product.seller || product.user
       })) || [];

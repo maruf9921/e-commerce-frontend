@@ -215,21 +215,21 @@ export const adminAPI = {
     };
   },
 
-  // Notifications
+  // Notifications - Using the correct notification endpoints
   getNotifications: (page = 1, limit = 10) => 
-    api.get(`/admin/notifications?page=${page}&limit=${limit}`),
+    api.get(`/notifications/my?page=${page}&limit=${limit}`),
 
   markNotificationAsRead: (id: number) => 
-    api.patch(`/admin/notifications/${id}/read`),
+    api.post(`/notifications/${id}/read`),
 
   markAllNotificationsAsRead: () => 
-    api.patch('/admin/notifications/mark-all-read'),
+    api.post('/notifications/my/read-all'),
 
   deleteNotification: (id: number) => 
-    api.delete(`/admin/notifications/${id}`),
+    api.post(`/notifications/${id}/delete`),
 
   createNotification: (data: any) => 
-    api.post('/admin/notifications', data)
+    api.post('/notifications/send', data)
 };
 
 export default api;

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdminGuard } from '@/hooks/useAuthGuard';
+import NotificationBell from '@/components/NotificationBell';
 import { 
   Users, 
   Store, 
@@ -51,6 +52,12 @@ export default function AdminDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'sellers' | 'orders'>('overview');
+
+  // Safe currency formatter
+  const formatCurrency = (value: any): string => {
+    const numValue = Number(value || 0);
+    return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
+  };
 
   useEffect(() => {
     if (isAuthorized && user?.id) {
@@ -144,6 +151,11 @@ export default function AdminDashboard() {
           <p className="text-gray-600">Manage your e-commerce platform</p>
         </div>
 
+        {/* Notification Bell for Admin */}
+        <div className="flex justify-end mb-4">
+          <NotificationBell />
+        </div>
+
         {/* Navigation Tabs */}
         <div className="mb-8">
           <div className="border-b border-gray-200">
@@ -226,7 +238,7 @@ export default function AdminDashboard() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      ${(stats?.totalRevenue || 0).toFixed(2)}
+                      ${formatCurrency(stats?.totalRevenue)}
                     </p>
                   </div>
                 </div>
@@ -438,7 +450,7 @@ export default function AdminDashboard() {
               <div className="border border-gray-200 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-2">Total Revenue</h4>
                 <p className="text-2xl font-bold text-green-600">
-                  ${(stats?.totalRevenue || 0).toFixed(2)}
+                  ${formatCurrency(stats?.totalRevenue)}
                 </p>
                 <p className="text-sm text-gray-600">Total platform revenue</p>
               </div>

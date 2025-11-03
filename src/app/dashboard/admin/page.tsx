@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { adminAPI } from '@/lib/adminAPI';
 import { useToast } from '@/contexts/ToastContext';
+import { useNotifications } from '@/contexts/NotificationContext';
+import NotificationBell from '@/components/NotificationBell';
 
 interface DashboardStats {
   totalUsers: number;
@@ -16,6 +18,20 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const { addToast } = useToast();
+  const { notifications, unreadCount, isConnected } = useNotifications();
+
+  // Auto-refresh dashboard when new order notifications arrive
+  useEffect(() => {
+    const orderNotifications = notifications.filter(n => 
+      n.type === 'order' && 
+      (new Date().getTime() - new Date(n.timestamp).getTime()) < 60000 // Last minute
+    );
+    
+    if (orderNotifications.length > 0) {
+      console.log('🔄 New order notification detected, refreshing dashboard stats...');
+      fetchDashboardData();
+    }
+  }, [notifications]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -77,12 +93,23 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <button
-          onClick={fetchDashboardData}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center space-x-4">
+          {/* Real-time notification bell */}
+          <div className="flex items-center space-x-2">
+            <NotificationBell />
+            {isConnected ? (
+              <span className="text-xs text-green-600 font-medium">● Live</span>
+            ) : (
+              <span className="text-xs text-red-600 font-medium">● Offline</span>
+            )}
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
